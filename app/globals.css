@@ -166,18 +166,25 @@ button { border: 0; cursor: pointer; }
 .map-viewport { position: absolute; inset: 0; cursor: grab; touch-action: none; perspective: 1200px; }
 .map-viewport:active { cursor: grabbing; }
 .map-plane {
-  position: absolute; width: 4800px; height: 3300px; left: 50%; top: 50%;
+  position: absolute; width: 9600px; height: 6600px; left: 50%; top: 50%;
   transform-style: preserve-3d; transition: filter .6s; will-change: transform;
-  background-color: #101119;
+  background-color: #090a0f;
   background-image:
     radial-gradient(circle at 45% 45%, rgba(8,9,14,.02), rgba(8,9,14,.44) 78%),
-    linear-gradient(rgba(10,11,16,.08), rgba(10,11,16,.26)),
-    url("/lumen-map-bg.png");
-  background-size: 1600px 1100px, 1600px 1100px, 1600px 1100px;
+    linear-gradient(rgba(10,11,16,.08), rgba(10,11,16,.26));
+  background-size: 1600px 1100px, 1600px 1100px;
   background-position: 0 0;
   background-repeat: repeat;
-  background-blend-mode: normal, multiply, normal;
+  background-blend-mode: normal, multiply;
   border: 0;
+}
+.map-tile {
+  position: absolute; z-index: 0; width: 1600px; height: 1100px;
+  background-image: url("/lumen-map-primary.png");
+  background-position: center; background-size: cover; background-repeat: no-repeat;
+  pointer-events: none;
+  filter: brightness(.87) saturate(.8);
+  transform-origin: center;
 }
 .map-view.is-deconstructed .map-plane { filter: brightness(.48) blur(.5px); }
 .river { position: absolute; height: 120px; border: 1px solid rgba(135,121,168,.15); border-left: 0; border-right: 0; transform: rotate(-14deg); }
@@ -191,7 +198,134 @@ button { border: 0; cursor: pointer; }
 .footprints { position: absolute; color: rgba(177,155,220,.75); font: 15px var(--font-serif); text-shadow: 0 0 10px var(--violet); animation: footprints 8s linear infinite; }
 .footprints-one { left: 390px; top: 625px; transform: rotate(-25deg); }
 .footprints-two { right: 180px; top: 260px; transform: rotate(22deg); animation-delay: -4s; }
-.map-building { position: absolute; z-index: 4; width: 150px; height: 150px; transform: translate(-50%,-50%); background: none; color: var(--silver); }
+.map-building {
+  position: absolute; z-index: 4; transform: translate(-50%,-50%);
+  background: none; color: var(--silver); perspective: 520px;
+}
+.map-building.integrated.spire { width: 150px; height: 230px; }
+.map-building.integrated.library { width: 250px; height: 150px; }
+.map-building.integrated.reliquary { width: 220px; height: 220px; }
+.map-building.integrated.garden { width: 250px; height: 180px; }
+.map-building.integrated.ring-city { width: 390px; height: 390px; }
+.map-building.integrated.tri-hub { width: 260px; height: 230px; }
+.map-building.integrated.cross-hub { width: 215px; height: 215px; }
+.building-trace {
+  position: absolute; inset: 0; opacity: .62;
+  transform-style: preserve-3d;
+  transition: opacity .35s ease, filter .45s ease, transform .55s cubic-bezier(.16,.8,.18,1);
+  filter: drop-shadow(0 0 3px rgba(157,116,218,.48));
+}
+.building-trace::before,
+.building-trace::after,
+.building-trace i {
+  content: ""; position: absolute; border: 1px solid rgba(174,129,235,.78);
+  background: rgba(127,81,185,.035);
+  box-shadow: inset 0 0 18px rgba(161,112,220,.06), 0 0 7px rgba(142,94,207,.16);
+  transition: transform .58s cubic-bezier(.16,.8,.18,1), border-color .3s ease,
+    background .3s ease, box-shadow .3s ease;
+}
+
+/* Four footprint geometries follow real structures drawn into the map. */
+.map-building.spire .building-trace::before {
+  inset: 2% 23% 3%; clip-path: polygon(50% 0, 67% 21%, 82% 66%, 100% 84%, 72% 100%, 28% 100%, 0 84%, 18% 66%, 33% 21%);
+}
+.map-building.spire .building-trace::after {
+  inset: 18% 33% 14%; clip-path: polygon(50% 0, 72% 30%, 78% 70%, 100% 90%, 50% 100%, 0 90%, 22% 70%, 28% 30%);
+}
+.map-building.spire .building-trace i:nth-child(1) { inset: 40% 42% 20%; }
+.map-building.spire .building-trace i:nth-child(2) { inset: 69% 16% 18%; }
+.map-building.spire .building-trace i:nth-child(3) { inset: 82% 6% 7%; }
+
+.map-building.library .building-trace::before { inset: 16% 2%; }
+.map-building.library .building-trace::after { inset: 29% 10%; }
+.map-building.library .building-trace i:nth-child(1) { inset: 5% 38%; }
+.map-building.library .building-trace i:nth-child(2) { inset: 38% 22%; }
+.map-building.library .building-trace i:nth-child(3) { inset: 72% 8% 10%; }
+
+.map-building.reliquary .building-trace::before { inset: 4%; border-radius: 50%; }
+.map-building.reliquary .building-trace::after { inset: 20%; border-radius: 50%; }
+.map-building.reliquary .building-trace i:nth-child(1) { inset: 36%; border-radius: 50%; }
+.map-building.reliquary .building-trace i:nth-child(2) { inset: 47% 8%; }
+.map-building.reliquary .building-trace i:nth-child(3) { inset: 8% 47%; }
+
+.map-building.garden .building-trace::before {
+  inset: 4% 3%; clip-path: polygon(8% 23%, 27% 4%, 54% 12%, 75% 2%, 97% 29%, 88% 58%, 98% 84%, 65% 96%, 36% 87%, 9% 98%, 2% 62%);
+}
+.map-building.garden .building-trace::after {
+  inset: 20% 16%; clip-path: polygon(12% 22%, 45% 4%, 82% 18%, 98% 54%, 78% 92%, 39% 84%, 3% 61%);
+}
+.map-building.garden .building-trace i:nth-child(1) { inset: 34% 37%; border-radius: 44%; }
+.map-building.garden .building-trace i:nth-child(2) { inset: 17% 48%; transform: rotate(28deg); }
+.map-building.garden .building-trace i:nth-child(3) { inset: 48% 15%; transform: rotate(-12deg); }
+
+/* Selected structures: traced from the three user-provided map crops. */
+.map-building.ring-city .building-trace::before {
+  inset: 5%; border-radius: 50%; background: rgba(111,62,178,.16);
+  box-shadow: inset 0 0 0 18px rgba(125,75,190,.09), inset 0 0 0 40px rgba(86,46,143,.08), 0 0 12px rgba(151,96,222,.35);
+}
+.map-building.ring-city .building-trace::after {
+  inset: 25%; border-radius: 19%; transform: rotate(45deg);
+  background: rgba(128,72,194,.28);
+}
+.map-building.ring-city .building-trace i:nth-child(1) { inset: 36%; border-radius: 50%; }
+.map-building.ring-city .building-trace i:nth-child(2) { inset: 47% 4%; background: rgba(124,69,190,.18); }
+.map-building.ring-city .building-trace i:nth-child(3) { inset: 4% 47%; background: rgba(124,69,190,.18); }
+
+.map-building.tri-hub .building-trace::before {
+  inset: 18% 26%; border-radius: 50%; background: rgba(121,67,188,.34);
+  box-shadow: inset 0 0 0 10px rgba(116,64,181,.12), 0 0 12px rgba(151,96,222,.36);
+}
+.map-building.tri-hub .building-trace::after { inset: 31% 37%; border-radius: 50%; background: rgba(145,84,211,.36); }
+.map-building.tri-hub .building-trace i:nth-child(1) { inset: 40% 44%; border-radius: 50%; }
+.map-building.tri-hub .building-trace i:nth-child(2) {
+  inset: 46% -5% 46% 18%; transform: rotate(-42deg); transform-origin: 55% 50%;
+  background: rgba(113,62,177,.22);
+}
+.map-building.tri-hub .building-trace i:nth-child(3) {
+  inset: 46% 18% 46% -5%; transform: rotate(42deg); transform-origin: 45% 50%;
+  background: rgba(113,62,177,.22);
+}
+
+.map-building.cross-hub .building-trace::before {
+  inset: 31%; border-radius: 50%; background: rgba(133,74,200,.38);
+  box-shadow: inset 0 0 0 7px rgba(109,60,174,.16), 0 0 12px rgba(151,96,222,.38);
+}
+.map-building.cross-hub .building-trace::after { inset: 40%; border-radius: 50%; background: rgba(157,94,221,.42); }
+.map-building.cross-hub .building-trace i:nth-child(1) { inset: 45%; border-radius: 50%; }
+.map-building.cross-hub .building-trace i:nth-child(2) {
+  inset: 46% 1%; transform: rotate(45deg); background: rgba(111,61,176,.25);
+}
+.map-building.cross-hub .building-trace i:nth-child(3) {
+  inset: 46% 1%; transform: rotate(-45deg); background: rgba(111,61,176,.25);
+}
+
+.map-building.integrated:hover .building-trace,
+.map-building.integrated:focus-visible .building-trace {
+  opacity: .95;
+  filter: drop-shadow(0 0 5px rgba(216,215,223,.68)) drop-shadow(0 0 17px rgba(158,123,209,.72));
+}
+.map-building.integrated:hover .building-trace::before,
+.map-building.integrated:focus-visible .building-trace::before {
+  border-color: rgba(226,224,232,.92); background: rgba(178,150,220,.04);
+}
+.map-building.integrated:hover .building-trace::after,
+.map-building.integrated:focus-visible .building-trace::after {
+  border-color: rgba(183,149,229,.9); background: rgba(138,106,186,.055);
+}
+.map-building.integrated.is-selected .building-trace {
+  opacity: 1; transform: rotateX(48deg) translateY(-12px) scale(1.04);
+  filter: drop-shadow(0 0 7px rgba(219,217,229,.8)) drop-shadow(0 0 25px rgba(158,123,209,.8));
+}
+.map-building.integrated.is-selected .building-trace::before { transform: translateZ(52px) translateY(-22px); border-color: #dedbe5; }
+.map-building.integrated.is-selected .building-trace::after { transform: translateZ(34px) translateY(-13px); border-color: rgba(185,150,230,.95); }
+.map-building.integrated.is-selected .building-trace i:nth-child(1) { transform: translateZ(21px) translateY(-7px); }
+.map-building.integrated.is-selected .building-trace i:nth-child(2) { transform: translateZ(10px); }
+.map-building.integrated.is-selected .building-trace i:nth-child(3) { transform: translateZ(3px); }
+.map-building.tri-hub.is-selected .building-trace i:nth-child(2) { transform: rotate(-42deg) translateZ(10px); }
+.map-building.tri-hub.is-selected .building-trace i:nth-child(3) { transform: rotate(42deg) translateZ(3px); }
+.map-building.cross-hub.is-selected .building-trace i:nth-child(2) { transform: rotate(45deg) translateZ(10px); }
+.map-building.cross-hub.is-selected .building-trace i:nth-child(3) { transform: rotate(-45deg) translateZ(3px); }
+.map-building.integrated .project-label { top: calc(100% + 20px); }
 .building-glyph { width: 94px; height: 94px; position: relative; margin: auto; transform: rotate(45deg); transform-style: preserve-3d; transition: transform .45s ease; }
 .building-layer, .building-core {
   position: absolute; inset: 12px; border: 1px solid rgba(200,199,210,.35); background: rgba(140,120,184,.035);
@@ -212,7 +346,7 @@ button { border: 0; cursor: pointer; }
   color: #d7d5dc; font: 400 18px var(--font-serif); letter-spacing: .06em; transition: .3s;
 }
 .project-label small { display: block; margin-bottom: 5px; color: var(--violet-bright); font: 7px var(--font-mono); letter-spacing: .16em; }
-.map-building:hover .project-label, .map-building:focus-visible .project-label, .map-building.is-selected .project-label { opacity: 1; transform: translateX(-50%); }
+.map-building.is-selected .project-label { opacity: 1; transform: translateX(-50%); }
 .map-building.is-selected { z-index: 7; }
 .map-building.is-selected .building-glyph { transform: rotateX(62deg) rotateZ(45deg) scale(1.35); }
 .map-building.is-selected .layer-a { transform: translateZ(70px); border-color: var(--violet-bright); }

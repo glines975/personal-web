@@ -72,7 +72,15 @@ const projects: Project[] = [
 
 const MAP_TILE_WIDTH = 1600;
 const MAP_TILE_HEIGHT = 1100;
-const MAP_TILE_INDICES = [0, 1, 2];
+const MAP_TILE_STEP_X = MAP_TILE_WIDTH;
+const MAP_TILE_STEP_Y = MAP_TILE_HEIGHT;
+const MAP_TILE_INDICES = [0, 1, 2, 3, 4, 5];
+const PROJECT_HOTSPOTS = [
+  { x: 12.5, y: 46, outline: "ring-city" },
+  { x: 40.8, y: 85.5, outline: "tri-hub" },
+  { x: 28, y: 69, outline: "cross-hub" },
+];
+const PROJECT_TILE = { x: 2, y: 2 };
 
 function ParticleField({ calm = false }: { calm?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -248,7 +256,7 @@ function MapView({
   setSelected: (project: Project | null) => void;
   enterArchive: (project: Project) => void;
 }) {
-  const [offset, setOffset] = useState({ x: -2400, y: -1650 });
+  const [offset, setOffset] = useState({ x: -4000, y: -2750 });
   const drag = useRef({ active: false, x: 0, y: 0, ox: 0, oy: 0 });
   const wrapOffset = (value: number, tileSize: number) => {
     const minimum = -tileSize * 2;
@@ -263,8 +271,8 @@ function MapView({
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!drag.current.active) return;
     setOffset({
-      x: wrapOffset(drag.current.ox + event.clientX - drag.current.x, MAP_TILE_WIDTH),
-      y: wrapOffset(drag.current.oy + event.clientY - drag.current.y, MAP_TILE_HEIGHT),
+      x: wrapOffset(drag.current.ox + event.clientX - drag.current.x, MAP_TILE_STEP_X * 2),
+      y: wrapOffset(drag.current.oy + event.clientY - drag.current.y, MAP_TILE_STEP_Y * 2),
     });
   };
   const onPointerUp = () => {
@@ -286,27 +294,42 @@ function MapView({
       >
         <div className="map-plane" style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0)` }}>
           {MAP_TILE_INDICES.flatMap((tileY) =>
-            MAP_TILE_INDICES.flatMap((tileX) =>
-              projects.map((project) => (
+            MAP_TILE_INDICES.map((tileX) => (
+              <div
+                key={`map-tile-${tileX}-${tileY}`}
+                className="map-tile"
+                style={{
+                  left: `${tileX * MAP_TILE_STEP_X}px`,
+                  top: `${tileY * MAP_TILE_STEP_Y}px`,
+                  transform: `scaleX(${tileX % 2 === 0 ? 1 : -1}) scaleY(${tileY % 2 === 0 ? 1 : -1})`,
+                }}
+                aria-hidden="true"
+              />
+            )),
+          )}
+          {projects.slice(0, 3).map((project, projectIndex) => {
+              const hotspot = PROJECT_HOTSPOTS[projectIndex];
+              return (
                 <button
-                  key={`${tileX}-${tileY}-${project.id}`}
-                  className={`map-building ${selected?.id === project.id ? "is-selected" : ""}`}
+                  key={project.id}
+                  className={`map-building integrated ${hotspot.outline} ${selected?.id === project.id ? "is-selected" : ""}`}
                   style={{
-                    left: `${tileX * MAP_TILE_WIDTH + (project.x / 100) * MAP_TILE_WIDTH}px`,
-                    top: `${tileY * MAP_TILE_HEIGHT + (project.y / 100) * MAP_TILE_HEIGHT}px`,
+                    left: `${PROJECT_TILE.x * MAP_TILE_STEP_X + (hotspot.x / 100) * MAP_TILE_WIDTH}px`,
+                    top: `${PROJECT_TILE.y * MAP_TILE_STEP_Y + (hotspot.y / 100) * MAP_TILE_HEIGHT}px`,
                   }}
                   onClick={() => setSelected(project)}
                   aria-label={`解密项目：${project.title}`}
                 >
-                  <BuildingGlyph shape={project.shape} />
+                  <span className="building-trace" aria-hidden="true">
+                    <i /><i /><i />
+                  </span>
                   <span className="project-label">
                     <small>[DECRYPTED] {project.id}</small>
                     {project.title}
                   </span>
                 </button>
-              )),
-            ),
-          )}
+              );
+          })}
         </div>
       </div>
       <div className="map-compass" aria-hidden="true"><span>N</span><i /></div>
