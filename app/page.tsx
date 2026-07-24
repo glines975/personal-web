@@ -70,6 +70,10 @@ const projects: Project[] = [
   },
 ];
 
+const MAP_TILE_WIDTH = 1600;
+const MAP_TILE_HEIGHT = 1100;
+const MAP_TILE_INDICES = [0, 1, 2];
+
 function ParticleField({ calm = false }: { calm?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -244,8 +248,12 @@ function MapView({
   setSelected: (project: Project | null) => void;
   enterArchive: (project: Project) => void;
 }) {
-  const [offset, setOffset] = useState({ x: -180, y: -110 });
+  const [offset, setOffset] = useState({ x: -2400, y: -1650 });
   const drag = useRef({ active: false, x: 0, y: 0, ox: 0, oy: 0 });
+  const wrapOffset = (value: number, tileSize: number) => {
+    const minimum = -tileSize * 2;
+    return ((((value - minimum) % tileSize) + tileSize) % tileSize) + minimum;
+  };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest("button")) return;
@@ -255,8 +263,8 @@ function MapView({
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!drag.current.active) return;
     setOffset({
-      x: drag.current.ox + event.clientX - drag.current.x,
-      y: drag.current.oy + event.clientY - drag.current.y,
+      x: wrapOffset(drag.current.ox + event.clientX - drag.current.x, MAP_TILE_WIDTH),
+      y: wrapOffset(drag.current.oy + event.clientY - drag.current.y, MAP_TILE_HEIGHT),
     });
   };
   const onPointerUp = () => {
@@ -266,9 +274,8 @@ function MapView({
   return (
     <main className={`map-view ${selected ? "is-deconstructed" : ""}`}>
       <div className="map-heading">
-        <p className="eyebrow">THE MARAUDER&apos;S MAP / DECRYPTED</p>
-        <h1>Lumen, the City<br />of Living Light</h1>
-        <p>Drag to navigate · Select a structure to decrypt</p>
+        <h1>Leah</h1>
+        <p className="map-tagline">CONTENT CREATOR•SPACE ARCHITECT•AI BUILDER</p>
       </div>
       <div
         className="map-viewport"
@@ -278,30 +285,28 @@ function MapView({
         onPointerCancel={onPointerUp}
       >
         <div className="map-plane" style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0)` }}>
-          <div className="river river-one" />
-          <div className="river river-two" />
-          <div className="map-orbit orbit-a" />
-          <div className="map-orbit orbit-b" />
-          <div className="street-label label-north">NORTHERN VEIL</div>
-          <div className="street-label label-river">THE SILVER CURRENT</div>
-          <div className="street-label label-west">NOCTURNE WARD</div>
-          <div className="footprints footprints-one">· ·　· ·　· ·　· ·</div>
-          <div className="footprints footprints-two">· ·　· ·　· ·</div>
-          {projects.map((project) => (
-            <button
-              key={project.id}
-              className={`map-building ${selected?.id === project.id ? "is-selected" : ""}`}
-              style={{ left: `${project.x}%`, top: `${project.y}%` }}
-              onClick={() => setSelected(project)}
-              aria-label={`解密项目：${project.title}`}
-            >
-              <BuildingGlyph shape={project.shape} />
-              <span className="project-label">
-                <small>[DECRYPTED] {project.id}</small>
-                {project.title}
-              </span>
-            </button>
-          ))}
+          {MAP_TILE_INDICES.flatMap((tileY) =>
+            MAP_TILE_INDICES.flatMap((tileX) =>
+              projects.map((project) => (
+                <button
+                  key={`${tileX}-${tileY}-${project.id}`}
+                  className={`map-building ${selected?.id === project.id ? "is-selected" : ""}`}
+                  style={{
+                    left: `${tileX * MAP_TILE_WIDTH + (project.x / 100) * MAP_TILE_WIDTH}px`,
+                    top: `${tileY * MAP_TILE_HEIGHT + (project.y / 100) * MAP_TILE_HEIGHT}px`,
+                  }}
+                  onClick={() => setSelected(project)}
+                  aria-label={`解密项目：${project.title}`}
+                >
+                  <BuildingGlyph shape={project.shape} />
+                  <span className="project-label">
+                    <small>[DECRYPTED] {project.id}</small>
+                    {project.title}
+                  </span>
+                </button>
+              )),
+            ),
+          )}
         </div>
       </div>
       <div className="map-compass" aria-hidden="true"><span>N</span><i /></div>

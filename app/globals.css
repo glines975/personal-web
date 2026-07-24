@@ -40,6 +40,13 @@ button { border: 0; cursor: pointer; }
   animation: scan 8s linear infinite;
 }
 .frame-corners { position: fixed; inset: 18px; z-index: 80; pointer-events: none; }
+.frame-corners,
+.brand-mark,
+.sector-button,
+.hud-location,
+.map-compass {
+  display: none !important;
+}
 .frame-corners i { position: absolute; width: 30px; height: 30px; opacity: 0.35; }
 .frame-corners i:nth-child(1) { top: 0; left: 0; border-top: 1px solid var(--silver); border-left: 1px solid var(--silver); }
 .frame-corners i:nth-child(2) { top: 0; right: 0; border-top: 1px solid var(--silver); border-right: 1px solid var(--silver); }
@@ -136,24 +143,41 @@ button { border: 0; cursor: pointer; }
 
 /* Map */
 .map-view { min-height: 100vh; position: relative; overflow: hidden; background: radial-gradient(circle at 60% 45%, rgba(34,31,44,.8), transparent 48%); }
-.map-heading { position: absolute; z-index: 8; top: 112px; left: 7vw; pointer-events: none; transition: opacity .5s, transform .5s; }
+.map-heading {
+  --leah-size: clamp(72px, 7vw, 104px);
+  position: absolute; z-index: 8; top: 10vh; left: 6vw; width: min(1180px, 88vw);
+  transform: none; text-align: left; pointer-events: none;
+  transition: opacity .5s, transform .5s;
+}
 .eyebrow, .section-num { color: #847997; font: 8px var(--font-mono); letter-spacing: .28em; }
-.map-heading h1 { margin: 14px 0 12px; font: 400 clamp(42px, 5.6vw, 78px)/.83 var(--font-serif); letter-spacing: -.035em; color: #d3d0d7; }
-.map-heading > p:last-child { color: #6f6d78; font: 9px var(--font-mono); letter-spacing: .1em; }
+.map-heading h1 {
+  margin: 0 0 clamp(18px, 3vh, 30px); font: 400 var(--leah-size)/.8 var(--font-serif);
+  letter-spacing: -.045em; color: #d8d5dd; text-shadow: 0 18px 70px rgba(0,0,0,.72);
+}
+.map-tagline {
+  max-width: 1120px; margin: 0; color: #c4c1ca;
+  font: 400 clamp(22px, calc(7vw - 50px), 54px)/1.05 var(--font-serif);
+  letter-spacing: -.025em; text-wrap: balance; text-shadow: 0 6px 30px #08090e; opacity: .6;
+}
+.map-tagline::before {
+  content: none;
+}
 .map-view.is-deconstructed .map-heading { opacity: .12; transform: translateY(-20px); }
 .map-viewport { position: absolute; inset: 0; cursor: grab; touch-action: none; perspective: 1200px; }
 .map-viewport:active { cursor: grabbing; }
 .map-plane {
-  position: absolute; width: 1600px; height: 1100px; left: calc(50% - 620px); top: calc(50% - 390px);
-  transform-style: preserve-3d; transition: filter .6s;
+  position: absolute; width: 4800px; height: 3300px; left: 50%; top: 50%;
+  transform-style: preserve-3d; transition: filter .6s; will-change: transform;
   background-color: #101119;
   background-image:
-    linear-gradient(28deg, transparent 47%, rgba(200,199,210,.11) 48%, rgba(200,199,210,.11) 49%, transparent 50%),
-    linear-gradient(118deg, transparent 46%, rgba(140,120,184,.09) 47%, rgba(140,120,184,.09) 48%, transparent 49%),
-    repeating-linear-gradient(0deg, transparent 0 52px, rgba(200,199,210,.045) 53px 54px),
-    repeating-linear-gradient(90deg, transparent 0 72px, rgba(200,199,210,.04) 73px 74px);
-  background-size: 220px 180px, 270px 230px, auto, auto;
-  border: 1px solid rgba(200,199,210,.1); box-shadow: 0 0 100px #08090e inset;
+    radial-gradient(circle at 45% 45%, rgba(8,9,14,.02), rgba(8,9,14,.44) 78%),
+    linear-gradient(rgba(10,11,16,.08), rgba(10,11,16,.26)),
+    url("/lumen-map-bg.png");
+  background-size: 1600px 1100px, 1600px 1100px, 1600px 1100px;
+  background-position: 0 0;
+  background-repeat: repeat;
+  background-blend-mode: normal, multiply, normal;
+  border: 0;
 }
 .map-view.is-deconstructed .map-plane { filter: brightness(.48) blur(.5px); }
 .river { position: absolute; height: 120px; border: 1px solid rgba(135,121,168,.15); border-left: 0; border-right: 0; transform: rotate(-14deg); }
@@ -318,8 +342,8 @@ button { border: 0; cursor: pointer; }
 @keyframes revealInk { from { transform: translateY(0); } to { transform: translateY(-100%); } }
 
 @media (max-width: 900px) {
-  .map-heading { top: 100px; left: 38px; }
-  .map-heading h1 { font-size: 48px; }
+  .map-heading { --leah-size: clamp(64px, 10vw, 86px); top: 11vh; left: 6vw; }
+  .map-tagline { font-size: clamp(14px, calc(10vw - 50px), 36px); }
   .project-dossier { top: auto; left: 20px; right: 20px; bottom: 20px; width: auto; height: 58vh; padding: 30px; transform: translateY(calc(100% + 40px)); }
   .holo-mini { display: none; }
   .enter-archive { left: 30px; right: 30px; bottom: 24px; }
@@ -341,8 +365,11 @@ button { border: 0; cursor: pointer; }
   .global-menu { top: 10px; right: 10px; width: calc(100vw - 20px); }
   .portal-index, .portal-status { bottom: 20px; font-size: 5px; }.portal-index { left: 20px; }.portal-status { right: 20px; }
   .sealed-scroll { width: 84vw; height: 62vh; }
-  .map-heading { left: 23px; top: 95px; }.map-heading h1 { font-size: 39px; }
-  .map-plane { left: calc(50% - 700px); top: calc(50% - 440px); }
+  .map-heading { --leah-size: 58px; left: 24px; top: 12vh; width: calc(100vw - 48px); }
+  .map-heading h1 { margin-bottom: 18px; }
+  .map-tagline { font-size: 8px; line-height: 1.4; }
+  .map-tagline::before { width: 120px; margin-bottom: 22px; }
+  .map-plane { left: 50%; top: 50%; }
   .map-compass, .map-scale { display: none; }
   .project-dossier { height: 62vh; padding: 28px 25px; }
   .project-dossier h2 { font-size: 39px; }
