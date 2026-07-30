@@ -249,6 +249,7 @@ function MapView({
   const viewportRef = useRef<HTMLDivElement>(null);
   const planeRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fluoroRef = useRef<HTMLDivElement>(null);
   const baseImageRef = useRef<HTMLImageElement | null>(null);
   const overlayImageRef = useRef<HTMLImageElement | null>(null);
   const pointer = useRef({ x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, ready: false });
@@ -360,6 +361,7 @@ function MapView({
       const stillMs = performance.now() - glow.lastMove;
       const idleTarget = stillMs > 50 ? 1 : 0;
       glow.idle += (idleTarget - glow.idle) * 0.22;
+      fluoroRef.current?.classList.toggle("is-idle", stillMs > 180 && glow.visible > 0.2);
 
       trail.push({ x: p.x, y: p.y });
       if (trail.length > TRAIL_LENGTH) trail.shift();
@@ -382,7 +384,7 @@ function MapView({
       }
 
       if (glow.visible > 0.01) {
-        const baseRadius = Math.min(width, height) * 0.065;
+        const baseRadius = Math.min(width, height) * 0.045;
         const pulse = 0.5 + 0.5 * Math.sin(glow.time * 2.6);
         const radius = baseRadius * (1 - glow.idle * 0.28 + glow.idle * pulse * 0.58);
         const alpha = glow.visible * (1 - glow.idle * (0.72 * (1 - pulse)));
@@ -415,6 +417,13 @@ function MapView({
       rafRef.current = window.requestAnimationFrame(draw);
     };
 
+    const syncFluoro = (clientX: number, clientY: number, visible: boolean) => {
+      const fluoro = fluoroRef.current;
+      if (!fluoro) return;
+      fluoro.style.transform = `translate3d(${clientX}px, ${clientY}px, 0)`;
+      fluoro.classList.toggle("is-visible", visible);
+    };
+
     const onPointerMove = (event: globalThis.PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
@@ -422,13 +431,18 @@ function MapView({
       pointer.current.ty = ((event.clientY - rect.top) / rect.height) * plane.clientHeight;
       glow.target = 1;
       glow.lastMove = performance.now();
+      syncFluoro(event.clientX, event.clientY, true);
+      fluoroRef.current?.classList.remove("is-idle");
     };
-    const onPointerEnter = () => {
+    const onPointerEnter = (event: globalThis.PointerEvent) => {
       glow.target = 1;
       glow.lastMove = performance.now();
+      syncFluoro(event.clientX, event.clientY, true);
     };
     const onPointerLeave = () => {
       glow.target = 0;
+      syncFluoro(0, 0, false);
+      fluoroRef.current?.classList.remove("is-idle");
     };
 
     resize();
@@ -465,6 +479,7 @@ function MapView({
           </div>
         </div>
       </div>
+      <div ref={fluoroRef} className="fluorescent-cursor" aria-hidden="true" />
       <div className="map-compass" aria-hidden="true"><span>N</span><i /></div>
       <div className="map-scale">0 —— 100 —— 200M</div>
       <aside className={`project-dossier ${selected ? "is-visible" : ""}`} aria-hidden={!selected}>

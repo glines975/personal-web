@@ -171,8 +171,49 @@ button { border: 0; cursor: pointer; }
 .map-tagline::before { content: none; }
 .map-view.is-deconstructed .map-heading { opacity: .12; transform: translateY(-20px); filter: blur(2px); }
 .map-viewport {
-  position: absolute; inset: 0; overflow: hidden; cursor: default; touch-action: none;
+  position: absolute; inset: 0; overflow: hidden; cursor: none; touch-action: none;
   border: 0; box-shadow: inset 0 0 90px rgba(8,9,14,.18);
+}
+.fluorescent-cursor {
+  position: fixed;
+  z-index: 90;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle, #fff 0%, #e8dff8 35%, #b19bdc 70%, transparent 100%);
+  box-shadow:
+    0 0 4px 2px rgba(255, 255, 255, 0.95),
+    0 0 10px 3px rgba(177, 155, 220, 0.9),
+    0 0 22px 8px rgba(140, 120, 184, 0.55),
+    0 0 40px 14px rgba(140, 120, 184, 0.22);
+  mix-blend-mode: screen;
+  transition: opacity .2s ease;
+  will-change: transform;
+}
+.fluorescent-cursor.is-visible { opacity: 1; }
+.fluorescent-cursor.is-idle {
+  animation: fluoro-breathe 1.6s ease-in-out infinite;
+}
+@keyframes fluoro-breathe {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow:
+      0 0 4px 2px rgba(255, 255, 255, 0.95),
+      0 0 10px 3px rgba(177, 155, 220, 0.9),
+      0 0 22px 8px rgba(140, 120, 184, 0.55),
+      0 0 40px 14px rgba(140, 120, 184, 0.22);
+  }
+  50% {
+    filter: brightness(1.45);
+    box-shadow:
+      0 0 5px 2px rgba(255, 255, 255, 1),
+      0 0 14px 5px rgba(177, 155, 220, 1),
+      0 0 28px 12px rgba(140, 120, 184, 0.7),
+      0 0 48px 18px rgba(140, 120, 184, 0.32);
+  }
 }
 .map-plane {
   --pan-x: 0px;
