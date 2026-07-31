@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Geist_Mono, Inter, Playfair_Display } from "next/font/google";
+import { Geist_Mono, Inter, Playfair_Display, Italianno } from "next/font/google";
 import "./globals.css";
 
 const display = Playfair_Display({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+});
+
+const script = Italianno({
+  variable: "--font-script",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 const mono = Geist_Mono({
@@ -46,7 +53,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN">
       <body
-        className={`${display.variable} ${mono.variable} ${sans.variable}`}
+        className={`${display.variable} ${script.variable} ${mono.variable} ${sans.variable}`}
         style={{ ["--font-serif" as string]: "var(--font-display)" }}
       >
         {children}

@@ -278,6 +278,7 @@ function MapView({
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [entered, setEntered] = useState(false);
+  const [scrollHintVisible, setScrollHintVisible] = useState(true);
   const [hoveredCastle, setHoveredCastle] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const planeRef = useRef<HTMLDivElement>(null);
@@ -299,6 +300,7 @@ function MapView({
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+      setScrollHintVisible(false);
       const mapPlane = planeRef.current;
       const canvasWidth = mapPlane?.getBoundingClientRect().width ?? viewport.clientWidth;
       const maxPanX = Math.max(0, (canvasWidth - viewport.clientWidth) / 2);
@@ -550,6 +552,12 @@ function MapView({
         </div>
       </div>
       <div ref={fluoroRef} className="fluorescent-cursor" aria-hidden="true" />
+      <div
+        className={`map-scroll-hint${scrollHintVisible ? "" : " is-dismissed"}`}
+        aria-hidden={!entered || !scrollHintVisible}
+      >
+        <span>SCROLL</span>
+      </div>
       <div className="map-compass" aria-hidden="true"><span>N</span><i /></div>
       <div className="map-scale">0 —— 100 —— 200M</div>
       <aside className={`project-dossier ${selected ? "is-visible" : ""}`} aria-hidden={!selected}>

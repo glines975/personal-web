@@ -507,6 +507,52 @@ button { border: 0; cursor: pointer; }
 .map-compass i { height: 52px; width: 1px; background: linear-gradient(var(--violet-bright) 50%, rgba(200,199,210,.18) 50%); transform: rotate(25deg); }
 .map-compass span { position: absolute; top: -16px; }
 .map-scale { position: absolute; right: 6vw; top: 16vh; color: #575762; font: 7px var(--font-mono); letter-spacing: .18em; }
+.map-scroll-hint {
+  position: absolute;
+  left: 50%;
+  bottom: max(28px, 4.5vh);
+  z-index: 8;
+  transform: translateX(-50%) translateY(12px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s cubic-bezier(.16,.8,.18,1) 1.6s,
+    transform 1.6s cubic-bezier(.16,.8,.18,1) 1.6s;
+}
+.map-view.is-entered .map-scroll-hint {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.map-view.is-entered .map-scroll-hint.is-dismissed,
+.map-view.is-deconstructed .map-scroll-hint {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+  transition: opacity .4s ease, transform .4s ease;
+  transition-delay: 0s;
+}
+.map-scroll-hint span {
+  display: block;
+  color: #2b1107;
+  font: italic 400 50px/1 var(--font-script), var(--font-display), cursive;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 14px rgba(255, 246, 228, 0.45), 0 1px 2px rgba(42, 34, 24, 0.12);
+  transform: skewX(-10deg);
+  opacity: 0.85;
+}
+.map-view.is-entered .map-scroll-hint:not(.is-dismissed) span {
+  animation: map-scroll-blink 2.6s ease-in-out 1.8s infinite;
+}
+@keyframes map-scroll-blink {
+  0%, 100% { opacity: 0.28; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-view.is-entered .map-scroll-hint:not(.is-dismissed) span {
+    animation: none;
+    opacity: 0.85;
+  }
+}
 .project-dossier {
   position: fixed; z-index: 20; top: 14vh; right: 4vw; bottom: 8vh; width: min(410px, 40vw); padding: 42px 44px 38px;
   background: linear-gradient(145deg, rgba(22,23,31,.92), rgba(11,12,18,.84)); border: 1px solid rgba(200,199,210,.18);
