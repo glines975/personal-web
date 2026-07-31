@@ -244,6 +244,99 @@ button { border: 0; cursor: pointer; }
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; display: block;
 }
+.castle-float-slot {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.castle-float-bob {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  will-change: transform;
+}
+.map-view.is-entered .castle-float-bob {
+  animation: castle-float 5.2s ease-in-out 1s infinite;
+}
+.castle-float-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.55;
+  transform: translate3d(0, 6px, 0) scale(1.02);
+  transform-origin: var(--castle-ox, 48%) var(--castle-glow-oy, 70%);
+  filter: brightness(0) invert(1) blur(28px);
+  transition: transform .85s cubic-bezier(.16,.8,.18,1),
+    opacity .85s ease,
+    filter .85s ease;
+  will-change: transform, filter, opacity;
+}
+.castle-float {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  transform: scale(1);
+  transform-origin: var(--castle-ox, 48%) var(--castle-oy, 55%);
+  transition: transform .85s cubic-bezier(.16,.8,.18,1);
+  will-change: transform;
+}
+.castle-float-hit {
+  position: absolute;
+  left: var(--hit-l, 40%);
+  top: var(--hit-t, 28%);
+  width: var(--hit-w, 18%);
+  height: var(--hit-h, 48%);
+  z-index: 4;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.castle-float-slot.is-hovered {
+  z-index: 6;
+}
+.castle-float-slot.is-hovered .castle-float {
+  transform: translate3d(0, -8px, 0) scale(1.05);
+}
+.castle-float-slot.is-hovered .castle-float-glow {
+  opacity: 0.85;
+  transform: translate3d(0, 12px, 0) scale(1.1);
+  filter: brightness(0) invert(1) blur(36px);
+}
+.map-view.is-deconstructed .castle-float-bob {
+  animation-play-state: paused;
+}
+.map-view.is-deconstructed .castle-float,
+.map-view.is-deconstructed .castle-float-glow {
+  filter: brightness(0.55);
+}
+.map-view.is-deconstructed .castle-float-glow {
+  opacity: 0.25;
+  filter: brightness(0) invert(1) blur(24px) brightness(0.55);
+}
+@keyframes castle-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -5px, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-view.is-entered .castle-float-bob {
+    animation: none;
+  }
+}
 .map-view.is-deconstructed .map-plane-stage { filter: brightness(.48) blur(.5px); }
 .river { position: absolute; height: 120px; border: 1px solid rgba(135,121,168,.15); border-left: 0; border-right: 0; transform: rotate(-14deg); }
 .river-one { width: 1300px; top: 420px; left: 190px; border-radius: 45% 55% 44% 56%; }

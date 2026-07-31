@@ -235,6 +235,38 @@ function BuildingGlyph({ shape }: { shape: string }) {
   );
 }
 
+const castleAssetVersion = "20260801b";
+
+const mapCastles = [
+  {
+    id: "castle1",
+    src: `/castle1.png?v=${castleAssetVersion}`,
+    label: "主城堡",
+    originX: "48.9%",
+    originY: "47.3%",
+    glowOriginY: "57%",
+    hit: { left: "38.9%", top: "20%", width: "21%", height: "54.5%" },
+  },
+  {
+    id: "castle2",
+    src: `/castle2.png?v=${castleAssetVersion}`,
+    label: "北塔",
+    originX: "22.6%",
+    originY: "20.4%",
+    glowOriginY: "24.8%",
+    hit: { left: "16.8%", top: "6.5%", width: "12.5%", height: "27.9%" },
+  },
+  {
+    id: "castle3",
+    src: `/castle3.png?v=${castleAssetVersion}`,
+    label: "东塔",
+    originX: "69.9%",
+    originY: "45.6%",
+    glowOriginY: "50.7%",
+    hit: { left: "64.5%", top: "29.8%", width: "11.9%", height: "31.5%" },
+  },
+] as const;
+
 function MapView({
   selected,
   setSelected,
@@ -246,6 +278,7 @@ function MapView({
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [entered, setEntered] = useState(false);
+  const [hoveredCastle, setHoveredCastle] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const planeRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -418,10 +451,10 @@ function MapView({
     };
 
     const syncFluoro = (clientX: number, clientY: number, visible: boolean) => {
-      const fluoro = fluoroRef.current;
-      if (!fluoro) return;
-      fluoro.style.transform = `translate3d(${clientX}px, ${clientY}px, 0)`;
-      fluoro.classList.toggle("is-visible", visible);
+      const el = fluoroRef.current;
+      if (!el) return;
+      el.style.transform = `translate3d(${clientX}px, ${clientY}px, 0)`;
+      el.classList.toggle("is-visible", visible);
     };
 
     const onPointerMove = (event: globalThis.PointerEvent) => {
@@ -476,6 +509,43 @@ function MapView({
         >
           <div className="map-plane-stage">
             <canvas ref={canvasRef} className="map-reveal-canvas" aria-hidden="true" />
+            {mapCastles.map((castle) => (
+              <div
+                key={castle.id}
+                className={`castle-float-slot${hoveredCastle === castle.id ? " is-hovered" : ""}`}
+                style={{
+                  ["--castle-ox" as string]: castle.originX,
+                  ["--castle-oy" as string]: castle.originY,
+                  ["--castle-glow-oy" as string]: castle.glowOriginY,
+                  ["--hit-l" as string]: castle.hit.left,
+                  ["--hit-t" as string]: castle.hit.top,
+                  ["--hit-w" as string]: castle.hit.width,
+                  ["--hit-h" as string]: castle.hit.height,
+                }}
+              >
+                <div className="castle-float-bob" aria-hidden="true">
+                  <img
+                    src={castle.src}
+                    alt=""
+                    className="castle-float-glow"
+                    draggable={false}
+                  />
+                  <img
+                    src={castle.src}
+                    alt=""
+                    className="castle-float"
+                    draggable={false}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="castle-float-hit"
+                  aria-label={castle.label}
+                  onPointerEnter={() => setHoveredCastle(castle.id)}
+                  onPointerLeave={() => setHoveredCastle(null)}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>
