@@ -44,9 +44,15 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    server: {
+      watch: {
+        ...(isCodexSeatbeltSandbox
+          ? { useFsEvents: false, usePolling: true }
+          : {}),
+        // Large audio files can lock on Windows and crash the watcher (EBUSY).
+        ignored: ["**/public/**/*.mp3", "**/bg music.mp3"],
+      },
+    },
     plugins: [
       vinext(),
       sites(),

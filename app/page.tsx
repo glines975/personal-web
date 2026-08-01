@@ -166,11 +166,15 @@ function Hud({
   menuOpen,
   setMenuOpen,
   goTo,
+  musicOn,
+  toggleMusic,
 }: {
   view: string;
   menuOpen: boolean;
   setMenuOpen: (open: boolean) => void;
   goTo: (view: "portal" | "map" | "about") => void;
+  musicOn: boolean;
+  toggleMusic: () => void;
 }) {
   return (
     <header className={`hud ${view === "portal" ? "hud-hidden" : ""}`}>
@@ -182,6 +186,14 @@ function Hud({
         <span className="live-dot" />
         {view === "map" ? "SECTOR 7–G" : view === "about" ? "RECORD C–01" : "ARCHIVE AR–01"}
       </div>
+      <button
+        className="music-toggle"
+        onClick={toggleMusic}
+        aria-label={musicOn ? "关闭背景音乐" : "开启背景音乐"}
+        aria-pressed={musicOn}
+      >
+        {musicOn ? "SOUND ON" : "SOUND OFF"}
+      </button>
       <button
         className="sector-button"
         onClick={() => setMenuOpen(!menuOpen)}
@@ -201,24 +213,37 @@ function Hud({
   );
 }
 
-function Portal({ onEnter }: { onEnter: () => void }) {
+function Portal({
+  onEnter,
+  onUnlock,
+  onOpening,
+}: {
+  onEnter: () => void;
+  onUnlock: () => void;
+  onOpening: () => void;
+}) {
   const [opening, setOpening] = useState(false);
   const unlock = () => {
     if (opening) return;
     setOpening(true);
-    window.setTimeout(onEnter, 1250);
+    // Unlock audio inside the click gesture; reveal map under the cover immediately.
+    onUnlock();
+    onOpening();
+    window.setTimeout(onEnter, 2100);
   };
   return (
     <main className={`portal ${opening ? "is-opening" : ""}`}>
-      <div className="ambient-stars" aria-hidden="true" />
-      <button className="sealed-scroll" onClick={unlock} aria-label="点击解开封印，进入 Lumen">
-        <span className="scroll-fold fold-left" />
-        <span className="scroll-fold fold-right" />
-        <span className="seal-ring"><i /></span>
-        <span className="welcome">welcome<span className="cursor">_</span></span>
-        <span className="unlock-copy">CLICK TO BREAK THE SEAL</span>
+      <button className="sealed-scroll" onClick={unlock} aria-label="点击封面，进入 Lumen">
+        <span className="scroll-fold fold-left" aria-hidden="true">
+          <span className="fold-cover" />
+        </span>
+        <span className="scroll-fold fold-right" aria-hidden="true">
+          <span className="fold-cover" />
+        </span>
+        <span className="unlock-copy unlock-copy-left">CLICK</span>
+        <span className="unlock-copy unlock-copy-right">OPEN</span>
       </button>
-      <div className="portal-index">LUMEN ARCHIVE · ENTRY 000</div>
+      <div className="portal-index">LEAH ARCHIVE</div>
       <div className="portal-status">ENCRYPTION: ACTIVE</div>
     </main>
   );
@@ -288,10 +313,18 @@ function MapView({
   const overlayImageRef = useRef<HTMLImageElement | null>(null);
   const pointer = useRef({ x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, ready: false });
   const rafRef = useRef(0);
+  const hintReadyRef = useRef(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setEntered(true));
-    return () => window.cancelAnimationFrame(frame);
+    // Brief grace so the entrance cue is visible before wheel can dismiss it.
+    const readyTimer = window.setTimeout(() => {
+      hintReadyRef.current = true;
+    }, 400);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(readyTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -300,7 +333,7 @@ function MapView({
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      setScrollHintVisible(false);
+      if (hintReadyRef.current) setScrollHintVisible(false);
       const mapPlane = planeRef.current;
       const canvasWidth = mapPlane?.getBoundingClientRect().width ?? viewport.clientWidth;
       const maxPanX = Math.max(0, (canvasWidth - viewport.clientWidth) / 2);
@@ -556,7 +589,13 @@ function MapView({
         className={`map-scroll-hint${scrollHintVisible ? "" : " is-dismissed"}`}
         aria-hidden={!entered || !scrollHintVisible}
       >
-        <span>SCROLL</span>
+        <img
+          src="/scroll-hint.png?v=20260801g"
+          alt=""
+          className="map-scroll-hint-img"
+          draggable={false}
+        />
+        <span className="map-scroll-hint-text">SCROLL</span>
       </div>
       <div className="map-compass" aria-hidden="true"><span>N</span><i /></div>
       <div className="map-scale">0 —— 100 —— 200M</div>
@@ -701,14 +740,74 @@ function AboutView() {
 
 export default function Home() {
   const [view, setView] = useState<"portal" | "map" | "archive" | "about">("portal");
+  const [showPortal, setShowPortal] = useState(true);
   const [selected, setSelected] = useState<Project | null>(null);
   const [archiveProject, setArchiveProject] = useState<Project>(projects[0]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [musicOn, setMusicOn] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUnlockedRef = useRef(false);
+
+  const applyMusicRate = (audio: HTMLAudioElement) => {
+    audio.playbackRate = 0.75;
+    audio.preservesPitch = true;
+  };
+
+  const playMusic = () => {
+    const audio = audioRef.current;
+    if (!audio || !musicEnabled) return;
+    applyMusicRate(audio);
+    audio.volume = 0.45;
+    void audio
+      .play()
+      .then(() => {
+        audioUnlockedRef.current = true;
+        setMusicOn(true);
+      })
+      .catch(() => setMusicOn(false));
+  };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    applyMusicRate(audio);
+    if (view === "map" && musicEnabled) {
+      // Resume if already unlocked; first start happens in the cover click gesture.
+      if (audioUnlockedRef.current || !audio.paused) {
+        audio.volume = 0.45;
+        void audio.play().then(() => setMusicOn(true)).catch(() => setMusicOn(false));
+      }
+    } else if (view !== "map") {
+      audio.pause();
+      setMusicOn(false);
+    }
+  }, [view, musicEnabled]);
+
+  const toggleMusic = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (showPortal && view !== "map") return;
+    if (audio.paused) {
+      setMusicEnabled(true);
+      applyMusicRate(audio);
+      audio.volume = 0.45;
+      void audio.play().then(() => {
+        audioUnlockedRef.current = true;
+        setMusicOn(true);
+      }).catch(() => setMusicOn(false));
+    } else {
+      setMusicEnabled(false);
+      audio.pause();
+      setMusicOn(false);
+    }
+  };
 
   const goTo = (next: "portal" | "map" | "about") => {
     setMenuOpen(false);
     setSelected(null);
     setView(next);
+    setShowPortal(next === "portal");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -721,16 +820,30 @@ export default function Home() {
 
   return (
     <div className="lumen-app">
+      <audio ref={audioRef} src="/bg-music.mp3" loop preload="auto" playsInline />
       <div className="noise" aria-hidden="true" />
       <div className="scanline" aria-hidden="true" />
       <div className="frame-corners" aria-hidden="true"><i /><i /><i /><i /></div>
-      <Hud view={view} menuOpen={menuOpen} setMenuOpen={setMenuOpen} goTo={goTo} />
-      {view === "portal" && <Portal onEnter={() => setView("map")} />}
+      <Hud
+        view={showPortal ? "portal" : view}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        goTo={goTo}
+        musicOn={musicOn}
+        toggleMusic={toggleMusic}
+      />
       {view === "map" && (
         <MapView selected={selected} setSelected={setSelected} enterArchive={enterArchive} />
       )}
       {view === "archive" && <ArchiveView project={archiveProject} close={() => setView("map")} />}
       {view === "about" && <AboutView />}
+      {showPortal && (
+        <Portal
+          onUnlock={playMusic}
+          onOpening={() => setView("map")}
+          onEnter={() => setShowPortal(false)}
+        />
+      )}
     </div>
   );
 }
