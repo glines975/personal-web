@@ -191,9 +191,7 @@ function Hud({
         onClick={toggleMusic}
         aria-label={musicOn ? "关闭背景音乐" : "开启背景音乐"}
         aria-pressed={musicOn}
-      >
-        {musicOn ? "SOUND ON" : "SOUND OFF"}
-      </button>
+      />
       <button
         className="sector-button"
         onClick={() => setMenuOpen(!menuOpen)}
@@ -222,29 +220,65 @@ function Portal({
   onUnlock: () => void;
   onOpening: () => void;
 }) {
-  const [opening, setOpening] = useState(false);
-  const unlock = () => {
-    if (opening) return;
-    setOpening(true);
-    // Unlock audio inside the click gesture; reveal map under the cover immediately.
+  const [phase, setPhase] = useState<"cover" | "ready" | "zooming" | "opening">("cover");
+  const [cover2Visible, setCover2Visible] = useState(false);
+  const [cover3Visible, setCover3Visible] = useState(false);
+  const timersRef = useRef<number[]>([]);
+  const finishingRef = useRef(false);
+
+  useEffect(() => {
+    // cover2 starts at 0.6s, runs 10.5s (last 0.5s = hold after footprints gone)
+    const COVER2_START = 600;
+    const COVER2_DURATION = 10500;
+    const FOOTPRINTS_END = COVER2_START + COVER2_DURATION;
+    // Leah starts a bit earlier so her reveal feels faster
+    const COVER3_START = 2400;
+
+    const timers = [
+      window.setTimeout(() => setCover2Visible(true), COVER2_START),
+      window.setTimeout(() => setCover3Visible(true), COVER3_START),
+      window.setTimeout(() => setPhase("ready"), COVER3_START),
+      // Music starts when cover3 appears
+      window.setTimeout(onUnlock, COVER3_START),
+      // Switch after footprints finish + 0.5s end hold baked into cover2
+      window.setTimeout(onOpening, FOOTPRINTS_END),
+      window.setTimeout(onEnter, FOOTPRINTS_END + 200),
+    ];
+    timersRef.current = timers;
+    return () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      timersRef.current = [];
+    };
+  }, []);
+
+  const finishToMap = (delayMs: number) => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+    timersRef.current = [];
+    setPhase("opening");
     onUnlock();
     onOpening();
-    window.setTimeout(onEnter, 2100);
+    window.setTimeout(onEnter, delayMs);
   };
+
+  // Click anytime during the opening sequence to skip into the map.
+  const skipOpening = () => {
+    if (phase === "opening") return;
+    finishToMap(420);
+  };
+
   return (
-    <main className={`portal ${opening ? "is-opening" : ""}`}>
-      <button className="sealed-scroll" onClick={unlock} aria-label="点击封面，进入 Lumen">
-        <span className="scroll-fold fold-left" aria-hidden="true">
-          <span className="fold-cover" />
-        </span>
-        <span className="scroll-fold fold-right" aria-hidden="true">
-          <span className="fold-cover" />
-        </span>
-        <span className="unlock-copy unlock-copy-left">CLICK</span>
-        <span className="unlock-copy unlock-copy-right">OPEN</span>
+    <main className={`portal is-${phase}${phase === "opening" ? " is-opening" : ""}`}>
+      <button
+        className="sealed-scroll"
+        onClick={skipOpening}
+        aria-label="点击跳过开场，进入主页"
+      >
+        <span className="portal-cover portal-cover-1 is-visible" aria-hidden="true" />
+        <span className={`portal-cover portal-cover-2 ${cover2Visible ? "is-visible" : ""}`} aria-hidden="true" />
+        <span className={`portal-cover portal-cover-3 ${cover3Visible ? "is-visible" : ""}`} aria-hidden="true" />
       </button>
-      <div className="portal-index">LEAH ARCHIVE</div>
-      <div className="portal-status">ENCRYPTION: ACTIVE</div>
     </main>
   );
 }
@@ -303,6 +337,7 @@ function MapView({
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [entered, setEntered] = useState(false);
+  const [transitionComplete, setTransitionComplete] = useState(false);
   const [scrollHintVisible, setScrollHintVisible] = useState(true);
   const [hoveredCastle, setHoveredCastle] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -317,12 +352,13 @@ function MapView({
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setEntered(true));
-    // Brief grace so the entrance cue is visible before wheel can dismiss it.
+    const transitionTimer = window.setTimeout(() => setTransitionComplete(true), 2400);
     const readyTimer = window.setTimeout(() => {
       hintReadyRef.current = true;
     }, 400);
     return () => {
       window.cancelAnimationFrame(frame);
+      window.clearTimeout(transitionTimer);
       window.clearTimeout(readyTimer);
     };
   }, []);
@@ -445,6 +481,9 @@ function MapView({
         0,
         0,
       );
+      // Keep the reveal canvas from exposing a different fallback color while image assets load.
+      ctx.fillStyle = "#a48c6e";
+      ctx.fillRect(0, 0, width, height);
 
       const overlay = overlayImageRef.current;
       if (overlay?.complete && overlay.naturalWidth > 0) {
@@ -535,7 +574,7 @@ function MapView({
   }, []);
 
   return (
-    <main className={`map-view ${entered ? "is-entered" : ""} ${selected ? "is-deconstructed" : ""}`}>
+    <main className={`map-view ${entered ? "is-entered" : ""} ${transitionComplete ? "is-rendered" : "is-rendering"} ${selected ? "is-deconstructed" : ""}`}>
       <div className="map-viewport" ref={viewportRef}>
         <div
           className="map-plane"
@@ -589,13 +628,7 @@ function MapView({
         className={`map-scroll-hint${scrollHintVisible ? "" : " is-dismissed"}`}
         aria-hidden={!entered || !scrollHintVisible}
       >
-        <img
-          src="/scroll-hint.png?v=20260801g"
-          alt=""
-          className="map-scroll-hint-img"
-          draggable={false}
-        />
-        <span className="map-scroll-hint-text">SCROLL</span>
+        <div className="map-scroll-hint-img" role="img" aria-label="" />
       </div>
       <div className="map-compass" aria-hidden="true"><span>N</span><i /></div>
       <div className="map-scale">0 —— 100 —— 200M</div>
@@ -822,7 +855,6 @@ export default function Home() {
     <div className="lumen-app">
       <audio ref={audioRef} src="/bg-music.mp3" loop preload="auto" playsInline />
       <div className="noise" aria-hidden="true" />
-      <div className="scanline" aria-hidden="true" />
       <div className="frame-corners" aria-hidden="true"><i /><i /><i /><i /></div>
       <Hud
         view={showPortal ? "portal" : view}
