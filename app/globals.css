@@ -600,6 +600,136 @@ button { border: 0; cursor: pointer; }
 .map-compass { position: absolute; right: 6vw; bottom: 8vh; width: 74px; height: 74px; border: 1px solid var(--line); border-radius: 50%; display: grid; place-items: center; color: #686572; font: 8px var(--font-mono); }
 .map-compass i { height: 52px; width: 1px; background: linear-gradient(var(--violet-bright) 50%, rgba(200,199,210,.18) 50%); transform: rotate(25deg); }
 .map-compass span { position: absolute; top: -16px; }
+
+/* Featured Works — map blur + overlapping archive folders */
+.map-view.is-portfolio .map-plane-stage {
+  filter: blur(30px) brightness(0.78) saturate(0.85) !important;
+  transition: filter 0.55s ease;
+}
+.map-view.is-portfolio .map-viewport {
+  pointer-events: none;
+  cursor: default;
+}
+.map-view.is-portfolio .fluorescent-cursor,
+.map-view.is-portfolio .map-compass,
+.map-view.is-portfolio .map-scale {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+.map-view.is-portfolio .castle-float-hit {
+  pointer-events: none;
+}
+
+.portfolio-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  background: #f3efe9;
+  transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+.portfolio-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.portfolio-back {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 80;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(43, 34, 24, 0.18);
+  color: #1a1610;
+  box-shadow: 0 12px 28px rgba(20, 14, 8, 0.28);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.portfolio-back:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 248, 232, 0.9);
+}
+.folder-rack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.folder-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translateX(28px);
+  opacity: 0;
+  transition:
+    transform 0.4s cubic-bezier(.22,.7,.2,1),
+    opacity 0.45s ease;
+  transition-delay: calc(var(--folder-i, 0) * 0.05s), calc(var(--folder-i, 0) * 0.05s);
+}
+.portfolio-overlay.is-open .folder-layer {
+  opacity: 1;
+  /* peel: layers after hover step right via --folder-shift */
+  transform: translateX(var(--folder-shift, 0px));
+  transition-delay: 0s, 0s;
+}
+.portfolio-overlay.is-open .folder-layer.is-spine {
+  transform: none;
+}
+.folder-cover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* fill keeps all 5 canvases pixel-registered */
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+.folder-hit {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(.22,.7,.2,1);
+}
+.portfolio-texture {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: multiply;
+  transition: opacity 0.45s ease;
+}
+.portfolio-overlay.is-open .portfolio-texture {
+  opacity: 0.6;
+}
+.portfolio-texture img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  opacity: 1;
+  user-select: none;
+}
 .map-scale { position: absolute; right: 6vw; top: 16vh; color: #575762; font: 7px var(--font-mono); letter-spacing: .18em; }
 .map-scroll-hint {
   position: fixed;
@@ -768,6 +898,11 @@ button { border: 0; cursor: pointer; }
   .record-folder { width: 100%; padding: 50px 28px; }
   .portrait-reveal { position: relative; top: auto; right: auto; margin: 60px auto 0; }
   .record-section, .journey { width: 100%; margin-top: 70px; }
+  .portfolio-back {
+    width: 48px;
+    height: 48px;
+    font-size: 28px;
+  }
 }
 
 @media (max-width: 600px) {

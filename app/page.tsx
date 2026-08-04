@@ -163,6 +163,7 @@ function ParticleField({ calm = false }: { calm?: boolean }) {
 
 function Hud({
   view,
+  portfolioOpen,
   menuOpen,
   setMenuOpen,
   goTo,
@@ -170,6 +171,7 @@ function Hud({
   toggleMusic,
 }: {
   view: string;
+  portfolioOpen: boolean;
   menuOpen: boolean;
   setMenuOpen: (open: boolean) => void;
   goTo: (view: "portal" | "map" | "about") => void;
@@ -184,7 +186,13 @@ function Hud({
       </button>
       <div className="hud-location">
         <span className="live-dot" />
-        {view === "map" ? "SECTOR 7–G" : view === "about" ? "RECORD C–01" : "ARCHIVE AR–01"}
+        {portfolioOpen
+          ? "FEATURED WORKS"
+          : view === "map"
+            ? "SECTOR 7–G"
+            : view === "about"
+              ? "RECORD C–01"
+              : "ARCHIVE AR–01"}
       </div>
       <button
         className="music-toggle"
@@ -300,7 +308,7 @@ const mapCastles = [
   {
     id: "castle1",
     src: `/castle1.png?v=${castleAssetVersion}`,
-    label: "主城堡",
+    label: "Featured Works",
     originX: "48.9%",
     originY: "47.3%",
     glowOriginY: "57%",
@@ -326,20 +334,36 @@ const mapCastles = [
   },
 ] as const;
 
+/* profit cover1–5 share one 3508×3000 canvas; transparent gaps + left-on-top z-order
+   recreate profit cover.png. Hit strips are the exclusive visible columns L→R. */
+const folderAssetVersion = "20260805a";
+const folderThemes = [
+  { src: `/profit cover1.png?v=${folderAssetVersion}`, label: "ARCHIVE LOG", ink: "#4c2b21", hit: { left: "0%", width: "19.5%" } },
+  { src: `/profit cover2.png?v=${folderAssetVersion}`, label: "CLIFF CHURCH", ink: "#2b2218", hit: { left: "19.5%", width: "18.5%" } },
+  { src: `/profit cover3.png?v=${folderAssetVersion}`, label: "PIT COURTYARD", ink: "#2b2218", hit: { left: "38%", width: "19%" } },
+  { src: `/profit cover4.png?v=${folderAssetVersion}`, label: "TAIKOO WHARF", ink: "#1a100c", hit: { left: "57%", width: "18%" } },
+  { src: `/profit cover5.png?v=${folderAssetVersion}`, label: "AGING CITY", ink: "#1a1c22", hit: { left: "75%", width: "20%" } },
+] as const;
+
 function MapView({
   selected,
   setSelected,
   enterArchive,
+  portfolioOpen,
+  setPortfolioOpen,
 }: {
   selected: Project | null;
   setSelected: (project: Project | null) => void;
   enterArchive: (project: Project) => void;
+  portfolioOpen: boolean;
+  setPortfolioOpen: (open: boolean) => void;
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [entered, setEntered] = useState(false);
   const [transitionComplete, setTransitionComplete] = useState(false);
   const [scrollHintVisible, setScrollHintVisible] = useState(true);
   const [hoveredCastle, setHoveredCastle] = useState<string | null>(null);
+  const [hoveredFolder, setHoveredFolder] = useState<number | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const planeRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -368,6 +392,7 @@ function MapView({
     if (!viewport) return;
 
     const onWheel = (event: WheelEvent) => {
+      if (portfolioOpen) return;
       event.preventDefault();
       if (hintReadyRef.current) setScrollHintVisible(false);
       const mapPlane = planeRef.current;
@@ -379,7 +404,34 @@ function MapView({
 
     viewport.addEventListener("wheel", onWheel, { passive: false });
     return () => viewport.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [portfolioOpen]);
+
+  const openPortfolio = () => {
+    setSelected(null);
+    setHoveredFolder(null);
+    setPortfolioOpen(true);
+  };
+
+  /**
+   * Rest: cover2–5 sit a bit tighter (more overlap). cover1 never moves.
+   * Hover N (N≥1): same fixed 拉开 / 退位 as before, added on top of rest.
+   */
+  const folderShiftPx = (index: number) => {
+    if (index === 0) return 0;
+    const w = typeof window !== "undefined" ? window.innerWidth : 1440;
+    // Pull cover2–5 slightly left so the default stack is tighter
+    const rest = -Math.round(w * 0.0055 * index);
+    let peel = 0;
+    if (hoveredFolder !== null && hoveredFolder > 0 && index >= hoveredFolder) {
+      const open = Math.round(w * 0.028);
+      const retreat = Math.round(w * 0.014);
+      peel =
+        index === hoveredFolder
+          ? open
+          : open + (index - hoveredFolder) * retreat;
+    }
+    return rest + peel;
+  };
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -574,7 +626,9 @@ function MapView({
   }, []);
 
   return (
-    <main className={`map-view ${entered ? "is-entered" : ""} ${transitionComplete ? "is-rendered" : "is-rendering"} ${selected ? "is-deconstructed" : ""}`}>
+    <main
+      className={`map-view ${entered ? "is-entered" : ""} ${transitionComplete ? "is-rendered" : "is-rendering"} ${selected ? "is-deconstructed" : ""} ${portfolioOpen ? "is-portfolio" : ""}`}
+    >
       <div className="map-viewport" ref={viewportRef}>
         <div
           className="map-plane"
@@ -615,6 +669,7 @@ function MapView({
                   type="button"
                   className="castle-float-hit"
                   aria-label={castle.label}
+                  onClick={castle.id === "castle1" ? openPortfolio : undefined}
                   onPointerEnter={() => setHoveredCastle(castle.id)}
                   onPointerLeave={() => setHoveredCastle(null)}
                 />
@@ -625,8 +680,8 @@ function MapView({
       </div>
       <div ref={fluoroRef} className="fluorescent-cursor" aria-hidden="true" />
       <div
-        className={`map-scroll-hint${scrollHintVisible ? "" : " is-dismissed"}`}
-        aria-hidden={!entered || !scrollHintVisible}
+        className={`map-scroll-hint${scrollHintVisible && !portfolioOpen ? "" : " is-dismissed"}`}
+        aria-hidden={!entered || !scrollHintVisible || portfolioOpen}
       >
         <div className="map-scroll-hint-img" role="img" aria-label="" />
       </div>
@@ -651,6 +706,74 @@ function MapView({
           </>
         )}
       </aside>
+
+      <div
+        className={`portfolio-overlay${portfolioOpen ? " is-open" : ""}`}
+        aria-hidden={!portfolioOpen}
+      >
+        <button
+          type="button"
+          className="portfolio-back"
+          onClick={() => setPortfolioOpen(false)}
+          aria-label="返回主页面"
+          tabIndex={portfolioOpen ? 0 : -1}
+        >
+          ←
+        </button>
+        <div
+          className="folder-rack"
+          role="list"
+          onPointerLeave={() => setHoveredFolder(null)}
+        >
+          {folderThemes.map((theme, index) => (
+            <div
+              key={`layer-${theme.label}`}
+              className={`folder-layer${index === 0 ? " is-spine" : ""}`}
+              style={{
+                ["--folder-i" as string]: index,
+                ["--folder-shift" as string]: `${folderShiftPx(index)}px`,
+                zIndex: folderThemes.length - index,
+              }}
+              aria-hidden="true"
+            >
+              <img
+                src={theme.src}
+                alt=""
+                className="folder-cover-img"
+                draggable={false}
+              />
+            </div>
+          ))}
+          {folderThemes.map((theme, index) => {
+            const project = projects[index % projects.length];
+            return (
+              <button
+                key={`hit-${theme.label}`}
+                type="button"
+                role="listitem"
+                className={`folder-hit${hoveredFolder === index ? " is-hovered" : ""}`}
+                style={{
+                  left: theme.hit.left,
+                  width: theme.hit.width,
+                  transform:
+                    index === 0 ? undefined : `translateX(${folderShiftPx(index)}px)`,
+                }}
+                aria-label={theme.label}
+                tabIndex={portfolioOpen ? 0 : -1}
+                onClick={() => enterArchive(project)}
+                onPointerEnter={() => setHoveredFolder(index === 0 ? null : index)}
+              />
+            );
+          })}
+          <div className="portfolio-texture" aria-hidden="true">
+            <img
+              src={`${encodeURI("/profit cover 叠加.png")}?v=${folderAssetVersion}`}
+              alt=""
+              draggable={false}
+            />
+          </div>
+        </div>
+      </div>
     </main>
   );
 }
@@ -777,6 +900,7 @@ export default function Home() {
   const [selected, setSelected] = useState<Project | null>(null);
   const [archiveProject, setArchiveProject] = useState<Project>(projects[0]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [portfolioOpen, setPortfolioOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -839,6 +963,7 @@ export default function Home() {
   const goTo = (next: "portal" | "map" | "about") => {
     setMenuOpen(false);
     setSelected(null);
+    setPortfolioOpen(false);
     setView(next);
     setShowPortal(next === "portal");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -858,6 +983,7 @@ export default function Home() {
       <div className="frame-corners" aria-hidden="true"><i /><i /><i /><i /></div>
       <Hud
         view={showPortal ? "portal" : view}
+        portfolioOpen={portfolioOpen}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
         goTo={goTo}
@@ -865,9 +991,23 @@ export default function Home() {
         toggleMusic={toggleMusic}
       />
       {view === "map" && (
-        <MapView selected={selected} setSelected={setSelected} enterArchive={enterArchive} />
+        <MapView
+          selected={selected}
+          setSelected={setSelected}
+          enterArchive={enterArchive}
+          portfolioOpen={portfolioOpen}
+          setPortfolioOpen={setPortfolioOpen}
+        />
       )}
-      {view === "archive" && <ArchiveView project={archiveProject} close={() => setView("map")} />}
+      {view === "archive" && (
+        <ArchiveView
+          project={archiveProject}
+          close={() => {
+            setView("map");
+            setPortfolioOpen(true);
+          }}
+        />
+      )}
       {view === "about" && <AboutView />}
       {showPortal && (
         <Portal
