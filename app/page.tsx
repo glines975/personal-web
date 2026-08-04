@@ -335,8 +335,10 @@ const mapCastles = [
 ] as const;
 
 /* profit cover1–5 share one 3508×3000 canvas; transparent gaps + left-on-top z-order
-   recreate profit cover.png. Hit strips are the exclusive visible columns L→R. */
-const folderAssetVersion = "20260805a";
+   recreate profit cover.png. Hit strips are the exclusive visible columns L→R.
+   cover6 sits behind as the archive backdrop. */
+const folderAssetVersion = "20260805c";
+const folderBackdropSrc = `/profit cover6.png?v=${folderAssetVersion}`;
 const folderThemes = [
   { src: `/profit cover1.png?v=${folderAssetVersion}`, label: "ARCHIVE LOG", ink: "#4c2b21", hit: { left: "0%", width: "19.5%" } },
   { src: `/profit cover2.png?v=${folderAssetVersion}`, label: "CLIFF CHURCH", ink: "#2b2218", hit: { left: "19.5%", width: "18.5%" } },
@@ -725,6 +727,14 @@ function MapView({
           role="list"
           onPointerLeave={() => setHoveredFolder(null)}
         >
+          <div className="folder-backdrop" aria-hidden="true">
+            <img
+              src={folderBackdropSrc}
+              alt=""
+              className="folder-cover-img"
+              draggable={false}
+            />
+          </div>
           {folderThemes.map((theme, index) => (
             <div
               key={`layer-${theme.label}`}
@@ -765,13 +775,6 @@ function MapView({
               />
             );
           })}
-          <div className="portfolio-texture" aria-hidden="true">
-            <img
-              src={`${encodeURI("/profit cover 叠加.png")}?v=${folderAssetVersion}`}
-              alt=""
-              draggable={false}
-            />
-          </div>
         </div>
       </div>
     </main>
