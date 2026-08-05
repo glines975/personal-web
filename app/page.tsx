@@ -337,7 +337,7 @@ const mapCastles = [
 /* profit cover1–5 share one 3508×3000 canvas; transparent gaps + left-on-top z-order
    recreate profit cover.png. Hit strips are the exclusive visible columns L→R.
    cover6 sits behind as the archive backdrop. */
-const folderAssetVersion = "20260805c";
+const folderAssetVersion = "20260805e";
 const folderBackdropSrc = `/profit cover6.png?v=${folderAssetVersion}`;
 const folderThemes = [
   { src: `/profit cover1.png?v=${folderAssetVersion}`, label: "ARCHIVE LOG", ink: "#4c2b21", hit: { left: "0%", width: "19.5%" } },
@@ -346,6 +346,14 @@ const folderThemes = [
   { src: `/profit cover4.png?v=${folderAssetVersion}`, label: "TAIKOO WHARF", ink: "#1a100c", hit: { left: "57%", width: "18%" } },
   { src: `/profit cover5.png?v=${folderAssetVersion}`, label: "AGING CITY", ink: "#1a1c22", hit: { left: "75%", width: "20%" } },
 ] as const;
+
+/* Page 2 mirrors page 1 for now — replace these paths when new art is ready. */
+const folderPage2AssetVersion = "20260805e";
+const folderPage2BackdropSrc = `/profit cover6.png?v=${folderPage2AssetVersion}`;
+const folderPage2Themes = folderThemes.map((theme) => ({
+  ...theme,
+  src: theme.src.replace(folderAssetVersion, folderPage2AssetVersion),
+}));
 
 function MapView({
   selected,
@@ -366,6 +374,11 @@ function MapView({
   const [scrollHintVisible, setScrollHintVisible] = useState(true);
   const [hoveredCastle, setHoveredCastle] = useState<string | null>(null);
   const [hoveredFolder, setHoveredFolder] = useState<number | null>(null);
+  const [portfolioPage, setPortfolioPage] = useState<1 | 2>(1);
+  const [folderTransit, setFolderTransit] = useState<
+    "idle" | "stowing" | "held" | "opening"
+  >("idle");
+  const folderTransitTimerRef = useRef(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const planeRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -408,19 +421,73 @@ function MapView({
     return () => viewport.removeEventListener("wheel", onWheel);
   }, [portfolioOpen]);
 
+  const playFolderOpen = () => {
+    window.clearTimeout(folderTransitTimerRef.current);
+    setFolderTransit("held");
+    // Leave spine immediately — only one frame to register the tucked pose
+    folderTransitTimerRef.current = window.setTimeout(() => {
+      setFolderTransit("opening");
+      folderTransitTimerRef.current = window.setTimeout(() => {
+        setFolderTransit("idle");
+      }, 1400);
+    }, 16);
+  };
+
   const openPortfolio = () => {
     setSelected(null);
     setHoveredFolder(null);
+    setPortfolioPage(1);
+    setFolderTransit("held");
     setPortfolioOpen(true);
+    playFolderOpen();
   };
+
+  const goPortfolioPage = (next: 1 | 2) => {
+    if (folderTransit !== "idle" || next === portfolioPage) return;
+    setHoveredFolder(null);
+    setFolderTransit("stowing");
+    window.clearTimeout(folderTransitTimerRef.current);
+    folderTransitTimerRef.current = window.setTimeout(() => {
+      setPortfolioPage(next);
+      playFolderOpen();
+    }, 620);
+  };
+
+  const closePortfolioPage = () => {
+    if (folderTransit !== "idle") return;
+    setHoveredFolder(null);
+    if (portfolioPage > 1) {
+      goPortfolioPage(1);
+      return;
+    }
+    setPortfolioOpen(false);
+  };
+
+  const openPortfolioPage2 = () => {
+    goPortfolioPage(2);
+  };
+
+  useEffect(() => {
+    return () => window.clearTimeout(folderTransitTimerRef.current);
+  }, []);
+
+  const activeFolderThemes = portfolioPage === 2 ? folderPage2Themes : folderThemes;
+  const activeBackdropSrc =
+    portfolioPage === 2 ? folderPage2BackdropSrc : folderBackdropSrc;
+  const marksVisible = hoveredFolder === null && folderTransit === "idle";
 
   /**
    * Rest: cover2–5 sit a bit tighter (more overlap). cover1 never moves.
    * Hover N (N≥1): same fixed 拉开 / 退位 as before, added on top of rest.
+   * Page transit: cover2–5 tuck left into the spine before the page swaps.
    */
   const folderShiftPx = (index: number) => {
     if (index === 0) return 0;
     const w = typeof window !== "undefined" ? window.innerWidth : 1440;
+    if (folderTransit === "stowing" || folderTransit === "held") {
+      // Pull each archive fully under the spine (cover1 ~19.5% wide)
+      return -Math.round(w * (0.78 + index * 0.08));
+    }
     // Pull cover2–5 slightly left so the default stack is tighter
     const rest = -Math.round(w * 0.0055 * index);
     let peel = 0;
@@ -710,18 +777,20 @@ function MapView({
       </aside>
 
       <div
-        className={`portfolio-overlay${portfolioOpen ? " is-open" : ""}`}
+        className={[
+          "portfolio-overlay",
+          portfolioOpen ? "is-open" : "",
+          marksVisible ? "is-collapsed" : "",
+          folderTransit !== "idle" ? "is-transiting" : "",
+          folderTransit === "stowing" ? "is-stowing" : "",
+          folderTransit === "held" ? "is-held" : "",
+          folderTransit === "opening" ? "is-opening" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         aria-hidden={!portfolioOpen}
+        data-portfolio-page={portfolioPage}
       >
-        <button
-          type="button"
-          className="portfolio-back"
-          onClick={() => setPortfolioOpen(false)}
-          aria-label="返回主页面"
-          tabIndex={portfolioOpen ? 0 : -1}
-        >
-          ←
-        </button>
         <div
           className="folder-rack"
           role="list"
@@ -729,20 +798,62 @@ function MapView({
         >
           <div className="folder-backdrop" aria-hidden="true">
             <img
-              src={folderBackdropSrc}
+              src={activeBackdropSrc}
               alt=""
               className="folder-cover-img"
               draggable={false}
             />
           </div>
-          {folderThemes.map((theme, index) => (
+          <button
+            type="button"
+            className="portfolio-mark portfolio-mark-back"
+            onClick={closePortfolioPage}
+            aria-label={portfolioPage > 1 ? "返回上一页" : "返回主页面"}
+            tabIndex={portfolioOpen && marksVisible ? 0 : -1}
+          >
+            <svg viewBox="0 0 52 40" aria-hidden="true">
+              <path
+                d="M42 34 V18 A14 14 0 0 0 28 4 H16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M8 4 L26 -1.2 V9.2 Z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+          {portfolioPage === 1 && (
+            <button
+              type="button"
+              className="portfolio-mark portfolio-mark-next"
+              onClick={openPortfolioPage2}
+              aria-label="打开下一页档案"
+              tabIndex={portfolioOpen && marksVisible ? 0 : -1}
+            >
+              <svg viewBox="0 0 28 48" aria-hidden="true">
+                <path
+                  d="M6 6 L20 24 L6 42"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
+          {activeFolderThemes.map((theme, index) => (
             <div
               key={`layer-${theme.label}`}
               className={`folder-layer${index === 0 ? " is-spine" : ""}`}
               style={{
                 ["--folder-i" as string]: index,
                 ["--folder-shift" as string]: `${folderShiftPx(index)}px`,
-                zIndex: folderThemes.length - index,
+                zIndex: activeFolderThemes.length - index,
               }}
               aria-hidden="true"
             >
@@ -754,7 +865,7 @@ function MapView({
               />
             </div>
           ))}
-          {folderThemes.map((theme, index) => {
+          {activeFolderThemes.map((theme, index) => {
             const project = projects[index % projects.length];
             return (
               <button
@@ -763,15 +874,22 @@ function MapView({
                 role="listitem"
                 className={`folder-hit${hoveredFolder === index ? " is-hovered" : ""}`}
                 style={{
+                  ["--folder-i" as string]: index,
                   left: theme.hit.left,
                   width: theme.hit.width,
                   transform:
                     index === 0 ? undefined : `translateX(${folderShiftPx(index)}px)`,
                 }}
                 aria-label={theme.label}
-                tabIndex={portfolioOpen ? 0 : -1}
-                onClick={() => enterArchive(project)}
-                onPointerEnter={() => setHoveredFolder(index === 0 ? null : index)}
+                tabIndex={portfolioOpen && folderTransit === "idle" ? 0 : -1}
+                onClick={() => {
+                  if (folderTransit !== "idle") return;
+                  enterArchive(project);
+                }}
+                onPointerEnter={() => {
+                  if (folderTransit !== "idle") return;
+                  setHoveredFolder(index === 0 ? null : index);
+                }}
               />
             );
           })}
