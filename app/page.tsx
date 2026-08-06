@@ -900,73 +900,77 @@ function MapView({
 }
 
 function ArchiveView({ project, close }: { project: Project; close: () => void }) {
-  const [diving, setDiving] = useState(true);
+  const [phase, setPhase] = useState<"enter" | "shown" | "leave">("enter");
+
   useEffect(() => {
-    const timer = window.setTimeout(() => setDiving(false), 1200);
-    return () => window.clearTimeout(timer);
+    const frame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setPhase("shown"));
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
+
+  const requestClose = () => {
+    if (phase === "leave") return;
+    setPhase("leave");
+    window.setTimeout(close, 420);
+  };
+
   return (
-    <main className={`archive-view ${diving ? "is-diving" : ""}`}>
-      <ParticleField calm={false} />
-      <div className="archive-fog" />
-      <button className="close-archive" onClick={close}>CLOSE ARCHIVE <span>×</span></button>
-      <aside className="archive-rail">
-        <div className="rail-code">LUMEN / {project.id}</div>
-        <div><span>STATUS</span> DECRYPTED</div>
-        <div><span>COORD.</span> 31°13&apos;N<br />121°28&apos;E</div>
-        <div><span>TYPE</span> {project.type}</div>
-        <div><span>YEAR</span> {project.year}</div>
-        <div className="scroll-meter"><i /></div>
-      </aside>
-      <div className="archive-content">
-        <section className="archive-hero">
-          <p className="eyebrow">ARCHIVE {project.id} / CASE FILE</p>
-          <h1>{project.title}</h1>
-          <div className="hero-rule" />
-          <p>{project.description}</p>
-          <div className="scroll-cue">SCROLL TO DESCEND <span>↓</span></div>
-        </section>
-        <section className="editorial-card intro-card">
-          <div>
-            <p className="section-num">01 / MANIFESTO</p>
-            <h2>Light is not applied.<br />It is excavated.</h2>
-          </div>
-          <p>
-            The proposal begins with darkness as a material condition. Voids are carved to receive
-            daylight; circulation follows the resulting gradients. Architecture becomes an instrument
-            that measures the passing hour.
-          </p>
-        </section>
-        <section className="visual-panel plan-visual">
-          <div className="visual-code">FIG. 01 — SPATIAL FIELD</div>
-          <div className="plan-rings" />
-          <span>GROUND / LIGHT MAP</span>
-        </section>
-        <section className="editorial-card split-card">
-          <div>
-            <p className="section-num">02 / STRATEGY</p>
-            <h2>Three layers of<br />luminous occupation.</h2>
-          </div>
-          <ol>
-            <li><b>THE PUBLIC STRATA</b><span>A continuous civic ground cut by reflected light.</span></li>
-            <li><b>THE ARCHIVE VEIL</b><span>Controlled shadow protects the inner collections.</span></li>
-            <li><b>THE BEACON</b><span>A vertical room that gathers the city at night.</span></li>
-          </ol>
-        </section>
-        <section className="visual-panel section-visual">
-          <div className="visual-code">FIG. 02 — VERTICAL PROTOCOL</div>
-          <div className="section-lines">
-            {Array.from({ length: 13 }).map((_, index) => <i key={index} />)}
-          </div>
-          <span>SECTION / ENERGY TRACE</span>
-        </section>
-        <section className="closing-note">
-          <p className="eyebrow">END OF RECORD / {project.id}</p>
-          <h2>The archive remains<br />alive after dark.</h2>
-          <button onClick={close}>RETURN TO THE CITY MAP <span>↗</span></button>
-        </section>
+    <main
+      className={`archive-view${phase === "shown" ? " is-shown" : ""}${phase === "leave" ? " is-leaving" : ""}`}
+    >
+      <div className="archive-topbar">
+        <div className="archive-brand-block">
+          <p className="archive-kicker">ARCHITECTURAL WORKS</p>
+          <p className="archive-brand-title">// {project.title}</p>
+        </div>
+        <button className="close-archive" onClick={requestClose} aria-label="关闭档案页">
+          ×
+        </button>
       </div>
-      <div className="dive-overlay"><div className="dive-core" /><span>DESCENDING INTO {project.id}</span></div>
+
+      <div className="archive-shell">
+        <article className="archive-card">
+          <div className="archive-media">
+            <img
+              src="/profit/portfolio%20ai1.png"
+              alt={project.title}
+              className="archive-image"
+              draggable={false}
+            />
+          </div>
+
+          <header className="archive-header">
+            <h1>{project.title}</h1>
+            <p className="archive-subtitle">
+              Anchored within Bonifacio&apos;s eroded cliffs, architectural corridors interconnect
+              three native reefs to frame a newly unified scenic vision.
+            </p>
+          </header>
+
+          <div className="archive-divider" aria-hidden="true" />
+
+          <section className="archive-copy" aria-label="项目说明">
+            <p>
+              {project.title.toUpperCase()} is a modern sanctuary of quiet reflection. Anchored
+              within Bonifacio&apos;s eroded cliffs, architectural corridors interconnect three native
+              reefs to frame a newly unified scenic vision.
+            </p>
+            <p>
+              The architecture respects the natural terrain, with structural anchors engineered to
+              withstand erosion from waves and coastal winds. It forms a visual continuation of the
+              white limestone headlands, creating a symbiotic dialogue between sacred geometries and
+              untamed landscape.
+            </p>
+            <p>
+              The main corridor floats above the crashing sea, with crystalline glass panels that
+              invite dynamic light and water views. In the heart of the chapel, light streams down
+              from a natural crevice in the karst cliff, casting sacred patterns across the polished
+              raw stone floor.
+            </p>
+          </section>
+        </article>
+      </div>
     </main>
   );
 }
