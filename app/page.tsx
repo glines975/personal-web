@@ -334,22 +334,22 @@ const mapCastles = [
   },
 ] as const;
 
-/* profit cover1–5 share one 3508×3000 canvas; transparent gaps + left-on-top z-order
-   recreate profit cover.png. Hit strips are the exclusive visible columns L→R.
+/* portfolio cover1–5 share one 3508×3000 canvas; transparent gaps + left-on-top z-order
+   recreate portfolio cover.png. Hit strips are the exclusive visible columns L→R.
    cover6 sits behind as the archive backdrop. */
 const folderAssetVersion = "20260805e";
-const folderBackdropSrc = `/profit cover6.png?v=${folderAssetVersion}`;
+const folderBackdropSrc = `/portfolio cover6.png?v=${folderAssetVersion}`;
 const folderThemes = [
-  { src: `/profit cover1.png?v=${folderAssetVersion}`, label: "ARCHIVE LOG", ink: "#4c2b21", hit: { left: "0%", width: "19.5%" } },
-  { src: `/profit cover2.png?v=${folderAssetVersion}`, label: "CLIFF CHURCH", ink: "#2b2218", hit: { left: "19.5%", width: "18.5%" } },
-  { src: `/profit cover3.png?v=${folderAssetVersion}`, label: "PIT COURTYARD", ink: "#2b2218", hit: { left: "38%", width: "19%" } },
-  { src: `/profit cover4.png?v=${folderAssetVersion}`, label: "TAIKOO WHARF", ink: "#1a100c", hit: { left: "57%", width: "18%" } },
-  { src: `/profit cover5.png?v=${folderAssetVersion}`, label: "AGING CITY", ink: "#1a1c22", hit: { left: "75%", width: "20%" } },
+  { src: `/portfolio cover1.png?v=${folderAssetVersion}`, label: "ARCHIVE LOG", ink: "#4c2b21", hit: { left: "0%", width: "19.5%" } },
+  { src: `/portfolio cover2.png?v=${folderAssetVersion}`, label: "CLIFF CHURCH", ink: "#2b2218", hit: { left: "19.5%", width: "18.5%" } },
+  { src: `/portfolio cover3.png?v=${folderAssetVersion}`, label: "PIT COURTYARD", ink: "#2b2218", hit: { left: "38%", width: "19%" } },
+  { src: `/portfolio cover4.png?v=${folderAssetVersion}`, label: "TAIKOO WHARF", ink: "#1a100c", hit: { left: "57%", width: "18%" } },
+  { src: `/portfolio cover5.png?v=${folderAssetVersion}`, label: "AGING CITY", ink: "#1a1c22", hit: { left: "75%", width: "20%" } },
 ] as const;
 
 /* Page 2 mirrors page 1 for now — replace these paths when new art is ready. */
 const folderPage2AssetVersion = "20260805e";
-const folderPage2BackdropSrc = `/profit cover6.png?v=${folderPage2AssetVersion}`;
+const folderPage2BackdropSrc = `/portfolio cover6.png?v=${folderPage2AssetVersion}`;
 const folderPage2Themes = folderThemes.map((theme) => ({
   ...theme,
   src: theme.src.replace(folderAssetVersion, folderPage2AssetVersion),
@@ -867,28 +867,30 @@ function MapView({
           ))}
           {activeFolderThemes.map((theme, index) => {
             const project = projects[index % projects.length];
+            const isSpine = index === 0;
             return (
               <button
                 key={`hit-${theme.label}`}
                 type="button"
                 role="listitem"
-                className={`folder-hit${hoveredFolder === index ? " is-hovered" : ""}`}
+                className={`folder-hit${hoveredFolder === index ? " is-hovered" : ""}${isSpine ? " is-spine-hit" : ""}`}
                 style={{
                   ["--folder-i" as string]: index,
                   left: theme.hit.left,
                   width: theme.hit.width,
                   transform:
-                    index === 0 ? undefined : `translateX(${folderShiftPx(index)}px)`,
+                    isSpine ? undefined : `translateX(${folderShiftPx(index)}px)`,
                 }}
                 aria-label={theme.label}
-                tabIndex={portfolioOpen && folderTransit === "idle" ? 0 : -1}
+                aria-disabled={isSpine}
+                tabIndex={portfolioOpen && folderTransit === "idle" && !isSpine ? 0 : -1}
                 onClick={() => {
-                  if (folderTransit !== "idle") return;
+                  if (folderTransit !== "idle" || isSpine) return;
                   enterArchive(project);
                 }}
                 onPointerEnter={() => {
-                  if (folderTransit !== "idle") return;
-                  setHoveredFolder(index === 0 ? null : index);
+                  if (folderTransit !== "idle" || isSpine) return;
+                  setHoveredFolder(index);
                 }}
               />
             );
@@ -901,6 +903,8 @@ function MapView({
 
 function ArchiveView({ project, close }: { project: Project; close: () => void }) {
   const [phase, setPhase] = useState<"enter" | "shown" | "leave">("enter");
+  const [archiveData, setArchiveData] = useState<{ title: string; subtitle: string; body: string[] } | null>(null);
+  const [heroImages, setHeroImages] = useState<string[]>([]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -909,11 +913,71 @@ function ArchiveView({ project, close }: { project: Project; close: () => void }
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
+  useEffect(() => {
+    const loadArchive = async () => {
+      try {
+        const res = await fetch("/portfolio/cliff-church/cliff-church.txt");
+        const text = await res.text();
+        const lines = text
+          .replace(/\r/g, "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        const readLabel = (label: string) => {
+          const line = lines.find((entry) => entry.startsWith(`${label}：`));
+          return line?.slice(label.length + 1).trim() ?? "";
+        };
+
+        const bodyIndex = lines.findIndex((entry) => entry.startsWith("正文："));
+        const bodyLines =
+          bodyIndex >= 0
+            ? [
+                lines[bodyIndex].slice("正文：".length).trim(),
+                ...lines.slice(bodyIndex + 1),
+              ].filter(Boolean)
+            : [];
+
+        setArchiveData({
+          title: (readLabel("主标题") || project.title).toUpperCase(),
+          subtitle: readLabel("副标题") || project.description,
+          body: bodyLines.length ? bodyLines : [project.description],
+        });
+        setHeroImages([
+          "/portfolio/cliff-church/cliff-church-main.jpg",
+          "/portfolio/cliff-church/cliff-church-3.jpg",
+          "/portfolio/cliff-church/cliff-church-4.jpg",
+          "/portfolio/cliff-church/cliff-church-5.jpg",
+          "/portfolio/cliff-church/cliff-church-6.jpg",
+          "/portfolio/cliff-church/cliff-church-7.jpg",
+        ]);
+      } catch {
+        setArchiveData({
+          title: project.title.toUpperCase(),
+          subtitle:
+            "Anchored within Bonifacio's eroded cliffs, architectural corridors interconnect three native reefs to frame a newly unified scenic vision.",
+          body: [
+            `${project.title.toUpperCase()} is a modern sanctuary of quiet reflection. Anchored within Bonifacio's eroded cliffs, architectural corridors interconnect three native reefs to frame a newly unified scenic vision.`,
+            "The architecture respects the natural terrain, with structural anchors engineered to withstand erosion from waves and coastal winds. It forms a visual continuation of the white limestone headlands, creating a symbiotic dialogue between sacred geometries and untamed landscape.",
+            "The main corridor floats above the crashing sea, with crystalline glass panels that invite dynamic light and water views. In the heart of the chapel, light streams down from a natural crevice in the karst cliff, casting sacred patterns across the polished raw stone floor.",
+          ],
+        });
+        setHeroImages(["/portfolio/cliff-church/cliff-church-main.jpg"]);
+      }
+    };
+    void loadArchive();
+  }, [project.description, project.title]);
+
   const requestClose = () => {
     if (phase === "leave") return;
     setPhase("leave");
     window.setTimeout(close, 420);
   };
+
+  const title = archiveData?.title ?? project.title.toUpperCase();
+  const subtitle = archiveData?.subtitle ?? project.description;
+  const body = archiveData?.body ?? [project.description];
+  const coverImage = heroImages[0] ?? "/portfolio/cliff-church/cliff-church-main.jpg";
 
   return (
     <main
@@ -922,7 +986,7 @@ function ArchiveView({ project, close }: { project: Project; close: () => void }
       <div className="archive-topbar">
         <div className="archive-brand-block">
           <p className="archive-kicker">ARCHITECTURAL WORKS</p>
-          <p className="archive-brand-title">// {project.title}</p>
+          <p className="archive-brand-title">// {title}</p>
         </div>
         <button className="close-archive" onClick={requestClose} aria-label="关闭档案页">
           ×
@@ -932,43 +996,42 @@ function ArchiveView({ project, close }: { project: Project; close: () => void }
       <div className="archive-shell">
         <article className="archive-card">
           <div className="archive-media">
-            <img
-              src="/profit/portfolio%20ai1.png"
-              alt={project.title}
-              className="archive-image"
-              draggable={false}
-            />
+            <img src={coverImage} alt={title} className="archive-image" draggable={false} />
           </div>
 
           <header className="archive-header">
-            <h1>{project.title}</h1>
-            <p className="archive-subtitle">
-              Anchored within Bonifacio&apos;s eroded cliffs, architectural corridors interconnect
-              three native reefs to frame a newly unified scenic vision.
-            </p>
+            <h1>{title}</h1>
+            <p className="archive-subtitle">{subtitle}</p>
           </header>
 
           <div className="archive-divider" aria-hidden="true" />
 
           <section className="archive-copy" aria-label="项目说明">
-            <p>
-              {project.title.toUpperCase()} is a modern sanctuary of quiet reflection. Anchored
-              within Bonifacio&apos;s eroded cliffs, architectural corridors interconnect three native
-              reefs to frame a newly unified scenic vision.
-            </p>
-            <p>
-              The architecture respects the natural terrain, with structural anchors engineered to
-              withstand erosion from waves and coastal winds. It forms a visual continuation of the
-              white limestone headlands, creating a symbiotic dialogue between sacred geometries and
-              untamed landscape.
-            </p>
-            <p>
-              The main corridor floats above the crashing sea, with crystalline glass panels that
-              invite dynamic light and water views. In the heart of the chapel, light streams down
-              from a natural crevice in the karst cliff, casting sacred patterns across the polished
-              raw stone floor.
-            </p>
+            {body.map((paragraph, index) => (
+              <p key={`${title}-${index}`}>{paragraph}</p>
+            ))}
           </section>
+
+          <section className="archive-gallery" aria-label="项目图片">
+            {[
+              "/portfolio/cliff-church/cliff-church-main.jpg",
+              "/portfolio/cliff-church/cliff-church-3.jpg",
+              "/portfolio/cliff-church/cliff-church-4.jpg",
+              "/portfolio/cliff-church/cliff-church-5.jpg",
+              "/portfolio/cliff-church/cliff-church-6.jpg",
+              "/portfolio/cliff-church/cliff-church-7.jpg",
+            ].map((src, index) => (
+              <figure key={`${title}-image-${index}`} className="archive-gallery-item">
+                <img src={src} alt={`${title} image ${index + 1}`} draggable={false} />
+              </figure>
+            ))}
+          </section>
+
+          <div className="archive-bottom-line" aria-hidden="true">
+            <span />
+            <i>•</i>
+            <span />
+          </div>
         </article>
       </div>
     </main>
@@ -1054,13 +1117,13 @@ export default function Home() {
     const audio = audioRef.current;
     if (!audio) return;
     applyMusicRate(audio);
-    if (view === "map" && musicEnabled) {
+    if ((view === "map" || view === "archive") && musicEnabled) {
       // Resume if already unlocked; first start happens in the cover click gesture.
       if (audioUnlockedRef.current || !audio.paused) {
         audio.volume = 0.45;
         void audio.play().then(() => setMusicOn(true)).catch(() => setMusicOn(false));
       }
-    } else if (view !== "map") {
+    } else if (view === "portal" || view === "about") {
       audio.pause();
       setMusicOn(false);
     }

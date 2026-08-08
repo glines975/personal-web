@@ -49,8 +49,8 @@ export default defineConfig(async () => {
         ...(isCodexSeatbeltSandbox
           ? { useFsEvents: false, usePolling: true }
           : {}),
-        // Large audio files can lock on Windows and crash the watcher (EBUSY).
-        ignored: ["**/public/**/*.mp3", "**/bg music.mp3"],
+        // Large media files can lock on Windows and crash the watcher (EBUSY).
+        ignored: ["**/public/**/*.mp3", "**/bg music.mp3", "**/portfolio/**"],
       },
     },
     plugins: [
