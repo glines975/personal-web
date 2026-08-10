@@ -57,16 +57,29 @@ const projects: Project[] = [
   },
   {
     id: "AR-04",
-    title: "Nocturne Garden",
-    type: "Urban / Installation",
+    title: "Taikoo Wharf",
+    type: "Urban / Waterfront",
+    year: "2024",
+    sector: "Sector 5–K",
+    x: 64,
+    y: 34,
+    shape: "garden",
+    description:
+      "A waterfront intervention that stitches public circulation, heritage fragments, and vertical volumes into a civic landscape.",
+    concept: "PUBLIC HARBOUR RITUAL",
+  },
+  {
+    id: "AR-05",
+    title: "Aging City",
+    type: "Urban / Mobility",
     year: "2024",
     sector: "Sector 2–W",
     x: 18,
     y: 74,
     shape: "garden",
     description:
-      "A nocturnal commons mapped by scent, sound and low illumination rather than conventional paths.",
-    concept: "DARKNESS AS ORIENTATION",
+      "A vertical mobility belt that links rooftops, parks, and facades into a barrier-free network for aging communities.",
+    concept: "VERTICAL VITALITY",
   },
 ];
 
@@ -906,6 +919,10 @@ function ArchiveView({ project, close }: { project: Project; close: () => void }
   const [archiveData, setArchiveData] = useState<{ title: string; subtitle: string; body: string[] } | null>(null);
   const [heroImages, setHeroImages] = useState<string[]>([]);
 
+  const sourceKey = project.id === "AR-03" ? "pit-courtyard" : project.id === "AR-04" ? "taikoo-wharf" : project.id === "AR-05" ? "aging-city" : "cliff-church";
+  const archiveTitle = project.id === "AR-03" ? "PIT COURTYARD" : project.id === "AR-04" ? "TAIKOO WHARF" : project.id === "AR-05" ? "AGING CITY" : project.title.toUpperCase();
+  const archiveImagePrefix = sourceKey === "pit-courtyard" ? "/portfolio/pit-courtyard/pit-courtyard" : sourceKey === "taikoo-wharf" ? "/portfolio/taikoo-wharf/taikoo-wharf" : sourceKey === "aging-city" ? "/portfolio/aging-city/aging-city" : "/portfolio/cliff-church/cliff-church";
+
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => setPhase("shown"));
@@ -916,7 +933,7 @@ function ArchiveView({ project, close }: { project: Project; close: () => void }
   useEffect(() => {
     const loadArchive = async () => {
       try {
-        const res = await fetch("/portfolio/cliff-church/cliff-church.txt");
+        const res = await fetch(`/portfolio/${sourceKey}/${sourceKey}.txt`);
         const text = await res.text();
         const lines = text
           .replace(/\r/g, "")
@@ -939,34 +956,95 @@ function ArchiveView({ project, close }: { project: Project; close: () => void }
             : [];
 
         setArchiveData({
-          title: (readLabel("主标题") || project.title).toUpperCase(),
+          title: (readLabel("主标题") || archiveTitle).toUpperCase(),
           subtitle: readLabel("副标题") || project.description,
           body: bodyLines.length ? bodyLines : [project.description],
         });
-        setHeroImages([
-          "/portfolio/cliff-church/cliff-church-main.jpg",
-          "/portfolio/cliff-church/cliff-church-3.jpg",
-          "/portfolio/cliff-church/cliff-church-4.jpg",
-          "/portfolio/cliff-church/cliff-church-5.jpg",
-          "/portfolio/cliff-church/cliff-church-6.jpg",
-          "/portfolio/cliff-church/cliff-church-7.jpg",
-        ]);
+        setHeroImages(
+          sourceKey === "pit-courtyard"
+            ? [
+                `${archiveImagePrefix}-main.jpg`,
+                `${archiveImagePrefix}-2.jpg`,
+                `${archiveImagePrefix}-10.png`,
+                `${archiveImagePrefix}-11.png`,
+                `${archiveImagePrefix}-12.png`,
+                `${archiveImagePrefix}-13.png`,
+                `${archiveImagePrefix}-14.png`,
+                `${archiveImagePrefix}-15.png`,
+                `${archiveImagePrefix}-16.png`,
+              ]
+            : sourceKey === "taikoo-wharf"
+            ? [
+                `${archiveImagePrefix}-main.jpg`,
+                `${archiveImagePrefix}-2.png`,
+                `${archiveImagePrefix}-3.png`,
+                `${archiveImagePrefix}-4.png`,
+                `${archiveImagePrefix}-5.png`,
+                `${archiveImagePrefix}-6.png`,
+              ]
+            : sourceKey === "aging-city"
+            ? [
+                `${archiveImagePrefix}-main.jpg`,
+                `${archiveImagePrefix}-12.png`,
+                `${archiveImagePrefix}-13.png`,
+                `${archiveImagePrefix}-14.png`,
+              ]
+            : [
+                "/portfolio/cliff-church/cliff-church-main.jpg",
+                "/portfolio/cliff-church/cliff-church-3.jpg",
+                "/portfolio/cliff-church/cliff-church-4.jpg",
+                "/portfolio/cliff-church/cliff-church-5.jpg",
+                "/portfolio/cliff-church/cliff-church-6.jpg",
+                "/portfolio/cliff-church/cliff-church-7.jpg",
+              ]
+        );
       } catch {
         setArchiveData({
-          title: project.title.toUpperCase(),
+          title: archiveTitle,
           subtitle:
-            "Anchored within Bonifacio's eroded cliffs, architectural corridors interconnect three native reefs to frame a newly unified scenic vision.",
-          body: [
-            `${project.title.toUpperCase()} is a modern sanctuary of quiet reflection. Anchored within Bonifacio's eroded cliffs, architectural corridors interconnect three native reefs to frame a newly unified scenic vision.`,
-            "The architecture respects the natural terrain, with structural anchors engineered to withstand erosion from waves and coastal winds. It forms a visual continuation of the white limestone headlands, creating a symbiotic dialogue between sacred geometries and untamed landscape.",
-            "The main corridor floats above the crashing sea, with crystalline glass panels that invite dynamic light and water views. In the heart of the chapel, light streams down from a natural crevice in the karst cliff, casting sacred patterns across the polished raw stone floor.",
-          ],
+            sourceKey === "pit-courtyard"
+              ? "This project modernizes traditional Dikengyuan (subterranean courtyards) by optimizing light, ventilation, and spatial connections. It transforms this eco-friendly regional heritage into sustainable housing for contemporary living."
+              : sourceKey === "taikoo-wharf"
+              ? "To reconnect Taikoo Wharf with its local community, this project inserts transparent vertical volumes to reclaim public space for residents, transforming the heritage site into an inclusive, contemporary waterfront landmark."
+              : sourceKey === "aging-city"
+              ? "In hyper-dense Hong Kong, an elevated walkway stitches together parks, facades, and rooftops through newly inserted volumes. This barrier-free \"Vertical Vitality Belt\" enhances elderly mobility while fostering intergenerational community life."
+              : "Anchored within Bonifacio's eroded cliffs, architectural corridors interconnect three native reefs to frame a newly unified scenic vision.",
+          body:
+            sourceKey === "pit-courtyard"
+              ? [
+                  "As one of the traditional Chinese buildings, the dikeng-yuan has been replaced, and only a small number of them still exist on the Loess Plateau. However, as a green, environmentally friendly, low energy consumption and traditional way of living with cultural heritage, I think it is worth to improve it to make it conform to the current concept of architecture and living, and slowly adapt to the characteristics of the times so that this way of living can be preserved and inherited. This is not only a kind of preservation of the architecture, but also has the significance of the times and regional characteristics.",
+                  "By connecting the courtyard and the courtyard, new space is created on the site, and the disadvantages of light and ventilation are also optimized. The concept of community is introduced to increase the interaction between kilns and kilns, and between residents and residents. By enhancing the public space between the buildings, the communication between people is enhanced to make the traditional buildings more in line with modern life and bring more convenience to the residents in their daily lives. The underground building will be more connected to the outside world and will no longer be an independent building. The project explores the collision between above and below ground, rural and urban, traditional and modern. It is transformed into a house that meets the modern living life, development and sustainability, so that it is not abandoned by the times.",
+                ]
+              : sourceKey === "taikoo-wharf"
+              ? [
+                  "Amidst a landscape dominated by modern high-rises, the historic Taikoo Wharf stands along the Pearl River, visually contrasting with its contemporary surroundings. On-site research revealed that while adaptive reuse extended the warehouse’s functional life, its new programming primarily serves tourists while neglecting local residents—failing to fully realize its potential social value.",
+                  "To address this, the project re-evaluates the relationship between Taikoo Wharf and its urban context, introducing new public spaces that restore activity areas to the local community. By re-establishing connections between residents, tourists, and the site, the design enriches the venue with multi-functional programming. Architecturally, transparent vertical volumes are inserted to remedy the lack of vertical dimension, creating a dynamic interaction with the existing heritage structures. This intervention seamlessly integrates the site into its modern environment, transforming Taikoo Wharf into a unified architectural ensemble that harmonizes with the river and forms a striking waterfront landmark.",
+                ]
+              : sourceKey === "aging-city"
+              ? [
+                  "In response to Hong Kong's hyper-dense, extremely compact, and vertically oriented urban environment, traditional ground-plane urban renewal models are no longer sufficient. Breaking free from the limits of the two-dimensional ground level, this project proposes a 3D Spatial Intervention framework.",
+                  "Centered around an Elevated Walkway System, the network acts as a spatial conduit weaving through the gaps between high-rises—seamlessly stitching together neighborhood parks, civic plazas, building facades, and high-altitude rooftop spaces. By strategically inserting medium-to-large functional nodes across various elevations, the design reactivates isolated, fragmented, and underutilized urban stock spaces (such as vacant rooftops and building envelopes), integrating them into a continuous, transparent, and dynamic three-dimensional public network.",
+                  "These inserted architectural volumes interlock with the elevated walkways, extending public life beyond the ground plane into the vertical dimension. For elderly residents, the meandering walkway creates a gentle, all-weather, barrier-free pedestrian route that completely bypasses heavy street traffic, steep terrain, and vehicle-pedestrian conflicts. By reorganizing multi-level space and accommodating hybrid programs, the project dismantles the spatial detachment typical of high-density living, establishing a \"Vertical Vitality Belt\" that encourages intergenerational connectivity and presents an inclusive new paradigm for aging in place.",
+                ]
+              : [
+                  `${archiveTitle} is a modern sanctuary of quiet reflection. Anchored within Bonifacio's eroded cliffs, architectural corridors interconnect three native reefs to frame a newly unified scenic vision.`,
+                  "The architecture respects the natural terrain, with structural anchors engineered to withstand erosion from waves and coastal winds. It forms a visual continuation of the white limestone headlands, creating a symbiotic dialogue between sacred geometries and untamed landscape.",
+                  "The main corridor floats above the crashing sea, with crystalline glass panels that invite dynamic light and water views. In the heart of the chapel, light streams down from a natural crevice in the karst cliff, casting sacred patterns across the polished raw stone floor.",
+                ],
         });
-        setHeroImages(["/portfolio/cliff-church/cliff-church-main.jpg"]);
+        setHeroImages(
+          sourceKey === "pit-courtyard"
+            ? ["/portfolio/pit-courtyard/pit-courtyard-2.jpg"]
+            : sourceKey === "taikoo-wharf"
+            ? ["/portfolio/taikoo-wharf/taikoo-wharf-main.jpg"]
+            : sourceKey === "aging-city"
+            ? ["/portfolio/aging-city/aging-city-main.jpg"]
+            : ["/portfolio/cliff-church/cliff-church-main.jpg"]
+        );
       }
     };
     void loadArchive();
-  }, [project.description, project.title]);
+  }, [archiveTitle, project.description, sourceKey]);
 
   const requestClose = () => {
     if (phase === "leave") return;
@@ -974,10 +1052,22 @@ function ArchiveView({ project, close }: { project: Project; close: () => void }
     window.setTimeout(close, 420);
   };
 
-  const title = archiveData?.title ?? project.title.toUpperCase();
+  const title = archiveData?.title ?? archiveTitle;
   const subtitle = archiveData?.subtitle ?? project.description;
   const body = archiveData?.body ?? [project.description];
-  const coverImage = heroImages[0] ?? "/portfolio/cliff-church/cliff-church-main.jpg";
+  const coverImage =
+    heroImages[0] ??
+    (sourceKey === "pit-courtyard"
+      ? "/portfolio/pit-courtyard/pit-courtyard-main.jpg"
+      : sourceKey === "taikoo-wharf"
+      ? "/portfolio/taikoo-wharf/taikoo-wharf-main.jpg"
+      : sourceKey === "aging-city"
+      ? "/portfolio/aging-city/aging-city-main.jpg"
+      : "/portfolio/cliff-church/cliff-church-main.jpg");
+  const galleryImages =
+    sourceKey === "pit-courtyard" || sourceKey === "aging-city"
+      ? heroImages.slice(1)
+      : heroImages;
 
   return (
     <main
@@ -1013,14 +1103,7 @@ function ArchiveView({ project, close }: { project: Project; close: () => void }
           </section>
 
           <section className="archive-gallery" aria-label="项目图片">
-            {[
-              "/portfolio/cliff-church/cliff-church-main.jpg",
-              "/portfolio/cliff-church/cliff-church-3.jpg",
-              "/portfolio/cliff-church/cliff-church-4.jpg",
-              "/portfolio/cliff-church/cliff-church-5.jpg",
-              "/portfolio/cliff-church/cliff-church-6.jpg",
-              "/portfolio/cliff-church/cliff-church-7.jpg",
-            ].map((src, index) => (
+            {galleryImages.map((src, index) => (
               <figure key={`${title}-image-${index}`} className="archive-gallery-item">
                 <img src={src} alt={`${title} image ${index + 1}`} draggable={false} />
               </figure>
